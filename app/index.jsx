@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import axios from 'axios';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
 import { useState } from 'react';
 import {
@@ -6,22 +6,15 @@ import {
   KeyboardAvoidingView,
   Platform,
   SafeAreaView,
-  ScrollView,
   StatusBar,
   Text,
   TextInput,
   TouchableOpacity,
   useWindowDimensions,
-  View,
+  View
 } from 'react-native';
-
-
-
  
-const Login = ({ navigation }:{navigation :any}) => {
-
-  const router = useRouter();
-
+const LoginScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
   const isMobile = width < 768;
@@ -31,11 +24,29 @@ const Login = ({ navigation }:{navigation :any}) => {
   const [showPassword, setShowPassword] = useState(false);
  
   // Handle login
-  const handleLogin = () => {
+  const handleLogin = async() => {
     // Implement authentication logic here
     console.log('Login with:', { email, password });
     // Navigate to Home or Dashboard after successful login
-    router.push('/navigation/MainTabs')
+
+    const user = {
+      email: email,
+      password: password,
+    }
+    
+    await axios.post('http://stu.globalknowledgetech.com:5003/auth/login', user)
+    .then((data) => {
+      console.log('Success:', data);
+      localStorage.setItem('token', data?.data?.accessToken);
+      localStorage.setItem("refreshToken", data?.data?.refreshToken);
+    })
+    .catch((error) => {
+      console.error('Error:', error);
+    });
+
+
+    
+    navigation.navigate('/Dashboard/Dashboard');
   };
  
   // Navigate back to landing page
@@ -43,8 +54,10 @@ const Login = ({ navigation }:{navigation :any}) => {
     navigation.goBack();
   };
  
+  // Navigate to Register page
   const goToRegister = () => {
- router.push('/(auth)/CreateAccount');  };
+    navigation.navigate('Register');
+  };
  
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FDF2F8' }}>
@@ -54,8 +67,8 @@ const Login = ({ navigation }:{navigation :any}) => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-        <ScrollView contentContainerStyle={{ flexGrow: 1 }}>
-         
+        {/* <ScrollView contentContainerStyle={{ flexGrow: 1 }}> */}
+          
          
           {/* Content */}
           <View style={{
@@ -63,7 +76,7 @@ const Login = ({ navigation }:{navigation :any}) => {
             justifyContent: 'center',
             alignItems: 'center',
             paddingHorizontal: 20,
-           
+            
           }}>
             {/* Logo */}
             <View style={{ marginBottom: 40, alignItems: 'center' }}>
@@ -74,7 +87,7 @@ const Login = ({ navigation }:{navigation :any}) => {
                 resizeMode='stretch'
                 resizeMethod='resize'
               />
-             
+              
               <Text style={{
                 fontSize: 28,
                 fontWeight: 'bold',
@@ -116,7 +129,7 @@ const Login = ({ navigation }:{navigation :any}) => {
                     paddingVertical: 16,
                     paddingHorizontal: 12,
                     color: '#1F2937',
-                   
+                    
                   }}
                   className = "outline-none border-none"
                   placeholder="Email address"
@@ -201,11 +214,10 @@ const Login = ({ navigation }:{navigation :any}) => {
               </TouchableOpacity>
             </View>
           </View>
-        </ScrollView>
+        {/* </ScrollView> */}
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 };
  
-export default Login;
- 
+export default LoginScreen;
