@@ -1,6 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import {
   ChevronsRight,
   GraduationCap,
@@ -18,6 +18,7 @@ import {
   View
 } from 'react-native';
  
+ // Form Section Component
  const FormSection = ({ title, icon, children }) => (
   <View style={{
     width: '100%',
@@ -79,15 +80,15 @@ const MatrimonialProfile = () => {
   const isWeb = Platform.OS === 'web';
   const isMobile = width < 768;
  
-  const router = useRouter();
   // State for form fields
   const [formData, setFormData] = useState({
     education: '',
+    degree:'',
     college: '',
     employedIn: '',
     occupation:'',
-    companyname:'',
-    annualincome:''
+    employerName:'',
+    annualIncome:''
    
   });
  
@@ -119,6 +120,15 @@ const MatrimonialProfile = () => {
       [field]: value,
     });
   };
+ 
+  // const handleChange = (field, value) => {
+  //   setFormData((prev) => ({
+  //     ...prev,
+  //     [field]: value,
+  //     ...(field === 'education' && { degree: '' }) // Reset degree if education changes
+  //   }));
+  // };
+ 
  
 const incomeOptions = [
   'Below ₹1L',
@@ -182,6 +192,7 @@ const degreeOptions = {
       const data = await response.json();
  
       if (response.ok) {
+        router.push("/profile/FamilyDetails");
         console.log('Professional details submitted successfully:', data);
         // You can show a success message or navigate to another screen
       } else {
@@ -201,30 +212,23 @@ const degreeOptions = {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
       {/* Header */}
-       <View style={{
+      <View style={{
         width: '100%',
         backgroundColor: '#EC4899',
-        paddingVertical: 10,
+        paddingVertical: 24,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
         elevation: 3
       }}>
-        <Text style={{
-          color: 'white',
-          fontSize: 20,
-          fontWeight: 'bold',
-          textAlign: 'center'
-        }}>
-          Create Profile
-        </Text>
+       
         <Text style={{
           color: 'white',
           textAlign: 'center',
           marginTop: 6,
           opacity: 0.9,
-          fontSize: 18
+          fontSize:18
         }}>
           Find your perfect match by completing your profile
         </Text>
@@ -239,7 +243,7 @@ const degreeOptions = {
           {/* Profession Details */}
           <FormSection title="Professional Details" icon={<GraduationCap size={24} color="#EC4899" />}>
            
-              <View style={{ flex: 1, marginRight: isWeb && !isMobile ? 8 : 0 }}>
+            {/*  <View style={{ flex: 1, marginRight: isWeb && !isMobile ? 8 : 0 }}>
               <FormField label="Education" icon={<School size={60} color="#6B7280" />}>
               <CustomPicker
               selectedValue={formData.education}
@@ -254,7 +258,32 @@ const degreeOptions = {
               ]}
             />
                 </FormField>
-              </View>
+              </View>*/}
+              <FormField label="Education" icon={<School size={60} color="#6B7280" />}>
+  <CustomPicker
+    selectedValue={formData.education}
+    onValueChange={(itemValue) => handleChange('education', itemValue)}
+    items={[
+      { label: 'High School', value: 'high_school' },
+      { label: 'Diploma', value: 'diploma' },
+      { label: 'Bachelor\'s Degree', value: 'bachelor' },
+      { label: 'Master\'s Degree', value: 'master' },
+      { label: 'Doctorate / PhD', value: 'phd' },
+      { label: 'Other', value: 'other' },
+    ]}
+  />
+</FormField>
+ 
+{formData.education !== '' && (
+  <FormField label="Degree" icon={<School size={60} color="#6B7280" />}>
+    <CustomPicker
+      selectedValue={formData.degree}
+      onValueChange={(itemValue) => handleChange('degree', itemValue)}
+      items={degreeOptions[formData.education] || []}
+    />
+  </FormField>
+)}
+ 
               <View style={{ flex: 1, marginLeft: isWeb && !isMobile ? 8 : 0 }}>
                 <FormField label="College">
                   <CustomInput
@@ -274,7 +303,7 @@ const degreeOptions = {
                 //   color: '#111827' // Tailwind's text-gray-900
                 // }}
                 items={[
-                  { label: 'Private', value: 'private' },
+                  { label: 'Private Sector', value: 'Private Sector' },
                   { label: 'Government', value: 'government' },
                   { label: 'Self-employed', value: 'self-employed' }
                 ]}
@@ -301,19 +330,19 @@ const degreeOptions = {
             </FormField>
             <FormField label="Company Name">
             <CustomInput
-              value={formData.companyname}
-              onChangeText={(text) => handleChange('companyname', text)}
+              value={formData.employerName}
+              onChangeText={(text) => handleChange('employerName', text)}
                placeholder="e.g. Infosys"
             />
           </FormField>
         <FormField label="Annual Income">
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
     {incomeOptions.map((option) => {
-      const isSelected = formData.annualincome === option;
+      const isSelected = formData.annualIncome === option;
       return (
         <TouchableOpacity
           key={option}
-          onPress={() => handleChange('annualincome', option)}
+          onPress={() => handleChange('annualIncome', option)}
           style={{
             width: '32%', // ensures 3 per row with spacing
             paddingVertical: 10,
@@ -372,5 +401,3 @@ const degreeOptions = {
 };
  
 export default MatrimonialProfile;
- 
- 
