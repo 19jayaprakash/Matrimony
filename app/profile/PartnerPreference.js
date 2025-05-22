@@ -19,7 +19,7 @@ import {
   View
 } from 'react-native';
 
-
+import AsyncStorage from '@react-native-async-storage/async-storage';
 const AGE_OPTIONS = Array.from({ length: 43 }, (_, i) => (i + 18).toString());
 
 const HEIGHT_OPTIONS_CM = Array.from({ length: 61 }, (_, i) => `${i + 140} cm`);
@@ -415,79 +415,89 @@ const MatrimonialProfile = () => {
     return validations.every(valid => valid);
   };
 
-  const handleSavePreferences = async () => {
-    if (validateAllFields()) {
-      const displayPreferences = {...preferences};
-      
-      if (preferences.heightRange.unit === 'cm') {
-        if (displayPreferences.heightRange.min) {
-          displayPreferences.heightRange.min += ' cm';
-        }
-        if (displayPreferences.heightRange.max) {
-          displayPreferences.heightRange.max += ' cm';
-        }
+
+
+const handleSavePreferences = async () => {
+  if (validateAllFields()) {
+    const displayPreferences = { ...preferences };
+
+    if (preferences.heightRange.unit === 'cm') {
+      if (displayPreferences.heightRange.min) {
+        displayPreferences.heightRange.min += ' cm';
       }
-
-      if (displayPreferences.weight.min) {
-        displayPreferences.weight.min += ' kg';
+      if (displayPreferences.heightRange.max) {
+        displayPreferences.heightRange.max += ' cm';
       }
-      if (displayPreferences.weight.max) {
-        displayPreferences.weight.max += ' kg';
-      }
-
-       let payloadData = {
-    minAge: preferences.ageRange.min,
-    maxAge: preferences.ageRange.max,
-    minHeight: preferences.heightRange.min,
-    maxHeight: preferences.heightRange.max,
-    heightUnit: preferences.heightRange.unit,
-    minWeight: preferences.weight.min,
-    maxWeight: preferences.weight.max,
-    weightUnit: preferences.weight.unit?.split(" ")[1] || "cm", 
-    caste: preferences.caste,
-    religion: preferences.religion,
-    lifestyle: preferences.lifestyle,
-    state: preferences.location.state,
-    city: preferences.location.city,
-    sex: preferences.sex,
-    otherSex: preferences.otherSex,
-    educationLevel: preferences.educationLevel,
-    occupationType: preferences.occupationType,
-}
-
-
-       await axios.post(
-  "http://stu.globalknowledgetech.com:5003/partnerpreference/create-preference",
-  payloadData,
-  {
-    headers: {
-      Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQsImlhdCI6MTc0Nzg0NTQxMSwiZXhwIjoxNzQ3ODUyNjExfQ.dWbfWPW-cJ4ZCuRgQ2TuidydsD6eJzoLy_XEBF7Q9f0`
     }
-  }
-)
-.then(res => {
-  console.log(res);
-})
-.catch(err => {
-  console.log(err);
-});
 
-      console.log('Saving preferences:', displayPreferences);
-      // router.push('../navigation/MainTabs');
-      Alert.alert("Success", "Partner preferences saved successfully!");
-    } else {
-      const errorMessages = [];
-      if (errors.ageRange) errorMessages.push(`Age: ${errors.ageRange}`);
-      if (errors.heightRange) errorMessages.push(`Height: ${errors.heightRange}`);
-      if (errors.weight) errorMessages.push(`Weight: ${errors.weight}`);
-      
-      Alert.alert(
-        "Validation Error",
-        `Please fix the following issues:\n${errorMessages.join('\n')}`,
-        [{ text: "OK" }]
+    if (displayPreferences.weight.min) {
+      displayPreferences.weight.min += ' kg';
+    }
+    if (displayPreferences.weight.max) {
+      displayPreferences.weight.max += ' kg';
+    }
+
+    const payloadData = {
+      minAge: preferences.ageRange.min,
+      maxAge: preferences.ageRange.max,
+      minHeight: preferences.heightRange.min,
+      maxHeight: preferences.heightRange.max,
+      heightUnit: preferences.heightRange.unit,
+      minWeight: preferences.weight.min,
+      maxWeight: preferences.weight.max,
+      weightUnit: preferences.weight.unit?.split(" ")[1] || "kg",
+      caste: preferences.caste,
+      religion: preferences.religion,
+      lifestyle: preferences.lifestyle,
+      state: preferences.location.state,
+      city: preferences.location.city,
+      sex: preferences.sex,
+      otherSex: preferences.otherSex,
+      educationLevel: preferences.educationLevel,
+      occupationType: preferences.occupationType,
+    };
+
+    try {
+      const token = await AsyncStorage.getItem('token');
+
+      if (!token) {
+        Alert.alert('Error', 'User not logged in. Token not found.');
+        return;
+      }
+
+      const res = await axios.post(
+        'http://stu.globalknowledgetech.com:5003/partnerpreference/create-preference',
+        payloadData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`
+          }
+        }
       );
+
+      console.log('Preference save success:', res.data);
+      Alert.alert('Success', 'Partner preferences saved successfully!');
+    } catch (err) {
+      console.log('Preference save failed:', err);
+      Alert.alert('Error', 'Failed to save preferences.');
     }
-  };
+
+    console.log('Saving preferences:', displayPreferences);
+    router.push('/navigation/MainTabs')
+  } else {
+    const errorMessages = [];
+    if (errors.ageRange) errorMessages.push(`Age: ${errors.ageRange}`);
+    if (errors.heightRange) errorMessages.push(`Height: ${errors.heightRange}`);
+    if (errors.weight) errorMessages.push(`Weight: ${errors.weight}`);
+
+    Alert.alert(
+      'Validation Error',
+      `Please fix the following issues:\n${errorMessages.join('\n')}`,
+      [{ text: 'OK' }]
+    );
+  }
+};
+
 
   const renderError = (errorText) => {
     if (!errorText) return null;
