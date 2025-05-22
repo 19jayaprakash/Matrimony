@@ -372,7 +372,7 @@ const handleSubmit = async () => {
       payloadData
     );
 
-    if (res.status === 200) {
+    if (res.status === 201) {
       console.log("Registration successful:", res.data);
       router.push("/");
     }

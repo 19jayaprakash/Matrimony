@@ -476,6 +476,7 @@ const handleSavePreferences = async () => {
       );
 
       console.log('Preference save success:', res.data);
+      router.push('/navigation/MainTabs')
       Alert.alert('Success', 'Partner preferences saved successfully!');
     } catch (err) {
       console.log('Preference save failed:', err);
@@ -483,7 +484,7 @@ const handleSavePreferences = async () => {
     }
 
     console.log('Saving preferences:', displayPreferences);
-    router.push('/navigation/MainTabs')
+    
   } else {
     const errorMessages = [];
     if (errors.ageRange) errorMessages.push(`Age: ${errors.ageRange}`);
