@@ -1,5 +1,6 @@
 //Family Background page
  
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import {
@@ -86,7 +87,29 @@ const MatrimonialProfile = () => {
   const [formData, setFormData] = useState({});
     const [sibilingData, setsibilingData] = useState({});
 const [siblingsList, setSiblingsList] = useState([]);
- 
+const [errors, setErrors] = useState({});
+const [siblingErrors, setSiblingErrors] = useState({});
+
+
+const validateForm = () => {
+  const newErrors = {};
+
+  if (!formData.FamilyType) newErrors.FamilyType = 'FamilyType is required';
+  if (!formData.FamilyValues) newErrors.FamilyValues = 'Familyvalues are required';
+if (!formData.ParentsOccupations) {
+  newErrors.ParentsOccupations = "Parent's occupation is required";
+} else if (formData.ParentsOccupations === 'Others' && !formData.OtherParentsOccupation) {
+  newErrors.OtherParentsOccupation = 'Please specify the occupation';
+}
+
+
+  setErrors(newErrors);
+  console.log(newErrors);
+  
+  return Object.keys(newErrors).length === 0;
+  
+};
+
   // Handle form field changes
   const handleChange = (field, value) => {
   setFormData(prevFormData => ({
@@ -104,9 +127,36 @@ const [siblingsList, setSiblingsList] = useState([]);
  
  
   // Form submission handler
-  const handleSubmit = () => {
+  const handleSubmit = async  () => {
+      if (!validateForm()) {
+    console.log('Validation failed');
+    return;
+  }
+
     formData.Sibilings=siblingsList
     console.log('Profile created:', formData);
+    
+
+    try {
+            const token = await AsyncStorage.getItem('token');
+      
+    const response = await fetch('http://stu.globalknowledgetech.com:5003/family/family-details', {
+      method: 'POST',
+      headers: {
+        'Accept': 'application/json',
+              Authorization: `Bearer ${token}`
+
+        // Note: DON'T set Content-Type manually when using FormData
+      },
+      body: JSON.stringify(formData),
+    });
+
+    const result = await response.json();
+    console.log('Response:', result);
+  } catch (error) {
+    console.error('Error:', error);
+  }
+
     router.push('/profile/PartnerPreference')
   };
  
@@ -120,13 +170,12 @@ const AddSibilings = () => {
       : sibilingData.SibilingsOccupations,
   };
 const isSiblingEmpty =
-  !newSibling.gender |
-  !newSibling.type |
-  !newSibling.maritalStatus |
+  !newSibling.gender ||
+  !newSibling.type ||
+  !newSibling.maritalStatus ||
   !newSibling.occupation;
  
 if (!isSiblingEmpty) {
-  console.log("Sibling data is empty");
  
  console.log(newSibling);
  
@@ -137,6 +186,11 @@ if (!isSiblingEmpty) {
   handlesibilingChange('SibilingMaritalsts', '');
   handlesibilingChange('SibilingsOccupations', '');
     handlesibilingChange('sibilings', '');
+}else{
+  console.log("Sibling data is empty");
+  
+    return;
+
 }
 };
  
@@ -238,6 +292,9 @@ const Occupations=["Business/Entrepreneur","Government Service",
                 onValueChange={(itemValue) => handleChange('FamilyType', itemValue)}
                  items={FamilyType.map(Type => ({ label: Type, value: Type }))}
               />
+                {errors.FamilyType && <Text style={{ color: 'red',marginTop:5 }}>{errors.FamilyType}</Text>}
+
+
             </FormField>
  
             <FormField label="Family Values">
@@ -247,6 +304,8 @@ const Occupations=["Business/Entrepreneur","Government Service",
                               items={FamilyValues.map(familyval => ({ label: familyval, value: familyval }))}
  
               />
+                              {errors.FamilyValues && <Text style={{ color: 'red',marginTop:5 }}>{errors.FamilyValues}</Text>}
+
             </FormField>
  
             <FormField label="Parent's Occupations">
@@ -265,6 +324,16 @@ items={Occupations.map(occpation => ({ label: occpation, value: occpation }))}
       onChangeText={(text) => handleChange('OtherParentsOccupation', text)}
     />
   </View>
+  )}
+ {errors.ParentsOccupations && (
+    <Text style={{ color: 'red', marginTop: 5 }}>
+      {errors.ParentsOccupations}
+    </Text>
+  )}
+  {formData.ParentsOccupations === 'Others' && errors.OtherParentsOccupation && (
+    <Text style={{ color: 'red', marginTop: 5 }}>
+      {errors.OtherParentsOccupation}
+    </Text>
   )}
             </FormField>
 {siblingsList.length > 0 && (
@@ -410,7 +479,8 @@ items={Occupations.map(occpation => ({ label: occpation, value: occpation }))}
 items={[
   { label: "Single", value: "Single" },
   { label: "Married", value: "Married" },
-  { label: "Divorced", value: "Divorced" }
+  { label: "Divorced", value: "Divorced" },
+    { label: "Widowed", value: "Widowed" },
 ]}
  
               />

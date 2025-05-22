@@ -1,6 +1,8 @@
 import { useNavigation } from '@react-navigation/native';
+import { useRouter } from 'expo-router';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
 import { useState } from 'react';
+
 import {
   Image,
   KeyboardAvoidingView,
@@ -16,6 +18,7 @@ import {
 } from 'react-native';
  
 const Login = () => {
+    const router = useRouter();
    const navigation = useNavigation();
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
@@ -30,7 +33,7 @@ const Login = () => {
     // Implement authentication logic here
     console.log('Login with:', { email, password });
     // Navigate to Home or Dashboard after successful login
-    navigation.navigate('Home');
+    router.push('Home');
   };
  
   // Navigate back to landing page
