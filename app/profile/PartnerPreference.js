@@ -1,6 +1,3 @@
-import { Ionicons } from '@expo/vector-icons';
-import axios from 'axios';
-import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
   Alert,
@@ -19,7 +16,12 @@ import {
   View
 } from 'react-native';
 
+// Fixed imports - make sure these packages are installed
+import { Ionicons } from '@expo/vector-icons';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import axios from 'axios';
+import { useRouter } from 'expo-router';
+
 const AGE_OPTIONS = Array.from({ length: 43 }, (_, i) => (i + 18).toString());
 
 const HEIGHT_OPTIONS_CM = Array.from({ length: 61 }, (_, i) => `${i + 140} cm`);
@@ -46,7 +48,6 @@ const CITIES_BY_STATE = {
   "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad"],
   "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirunelveli"],
   "Karnataka": ["Bengaluru", "Mysuru", "Hubli", "Mangaluru", "Belgaum", "Gulbarga"],
-  // Add some default cities for other states to improve user experience
   "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool"],
   "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
   "Delhi": ["New Delhi", "North Delhi", "South Delhi", "East Delhi", "West Delhi"],
@@ -109,6 +110,7 @@ const cmToFt = (cm) => {
 };
 
 const MatrimonialProfile = () => {
+
   const [preferences, setPreferences] = useState({
     ageRange: { min: '', max: '' },
     heightRange: { min: '', max: '', unit: 'cm' }, 
@@ -123,14 +125,23 @@ const MatrimonialProfile = () => {
     lifestyle: ''
   });
   
+  // Enhanced error state with individual field errors
   const [errors, setErrors] = useState({
     ageRange: '',
     heightRange: '',
-    weight: ''
+    weight: '',
+    sex: '',
+    otherSex: '',
+    educationLevel: '',
+    occupationType: '',
+    state: '',
+    city: '',
+    religion: '',
+    caste: '',
+    lifestyle: ''
   });
   
   const [minMaxType, setMinMaxType] = useState('');
-
   const [popupVisible, setPopupVisible] = useState(false);
   const [activeDropdown, setActiveDropdown] = useState('');
   const [dropdownItems, setDropdownItems] = useState([]);
@@ -139,34 +150,108 @@ const MatrimonialProfile = () => {
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
+  const router = useRouter();
+
+  // Validate individual fields
+  const validateField = (fieldName, value) => {
+    let errorMessage = '';
+    
+    switch (fieldName) {
+      case 'sex':
+        if (!value) {
+          errorMessage = 'Please select a gender';
+        }
+        break;
+        
+      case 'otherSex':
+        if (preferences.sex === 'Others' && !value.trim()) {
+          errorMessage = 'Please specify your gender';
+        }
+        break;
+        
+      case 'educationLevel':
+        if (!value) {
+          errorMessage = 'Please select your education level';
+        }
+        break;
+        
+      case 'occupationType':
+        if (!value) {
+          errorMessage = 'Please select your occupation type';
+        }
+        break;
+        
+      case 'state':
+        if (!value) {
+          errorMessage = 'Please select a state';
+        }
+        break;
+        
+      case 'city':
+        if (!value && preferences.location.state) {
+          errorMessage = 'Please select a city';
+        }
+        break;
+        
+      case 'religion':
+        if (!value) {
+          errorMessage = 'Please select a religion';
+        }
+        break;
+        
+      case 'caste':
+        if (!value && preferences.religion) {
+          errorMessage = 'Please select a caste';
+        }
+        break;
+        
+      case 'lifestyle':
+        if (!value) {
+          errorMessage = 'Please select a lifestyle preference';
+        }
+        break;
+    }
+    
+    setErrors(prev => ({
+      ...prev,
+      [fieldName]: errorMessage
+    }));
+    
+    return errorMessage === '';
+  };
+
   const validateRange = (field, values) => {
     const { min, max } = values;
+    let errorMessage = '';
     
-    if (!min || !max) {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-      return true;
-    }
-    
-    let minVal, maxVal;
-    
-    if (field === 'heightRange' && preferences.heightRange.unit === 'ft') {
-      minVal = ftToCm(min);
-      maxVal = ftToCm(max);
+    if (!min && !max) {
+      errorMessage = `Please select both minimum and maximum ${field.replace('Range', '')} values`;
+    } else if (!min) {
+      errorMessage = `Please select minimum ${field.replace('Range', '')} value`;
+    } else if (!max) {
+      errorMessage = `Please select maximum ${field.replace('Range', '')} value`;
     } else {
-      minVal = parseInt(min);
-      maxVal = parseInt(max);
+      let minVal, maxVal;
+      
+      if (field === 'heightRange' && preferences.heightRange.unit === 'ft') {
+        minVal = ftToCm(min);
+        maxVal = ftToCm(max);
+      } else {
+        minVal = parseInt(min);
+        maxVal = parseInt(max);
+      }
+      
+      if (minVal > maxVal) {
+        errorMessage = `Minimum ${field.replace('Range', '')} cannot be greater than maximum ${field.replace('Range', '')}`;
+      }
     }
     
-    if (minVal > maxVal) {
-      setErrors(prev => ({ 
-        ...prev, 
-        [field]: `Minimum value cannot be greater than maximum value` 
-      }));
-      return false;
-    } else {
-      setErrors(prev => ({ ...prev, [field]: '' }));
-      return true;
-    }
+    setErrors(prev => ({ 
+      ...prev, 
+      [field]: errorMessage 
+    }));
+    
+    return errorMessage === '';
   };
 
   const updatePreference = (field, value) => {
@@ -174,6 +259,19 @@ const MatrimonialProfile = () => {
       ...prev,
       [field]: value
     }));
+    
+    // Clear error when user makes a selection
+    if (errors[field]) {
+      setErrors(prev => ({
+        ...prev,
+        [field]: ''
+      }));
+    }
+    
+    // Validate field immediately after update
+    setTimeout(() => {
+      validateField(field, value);
+    }, 0);
   };
 
   const updateNestedPreference = (parent, field, value) => {
@@ -187,7 +285,6 @@ const MatrimonialProfile = () => {
       [parent]: updatedValues
     }));
 
-    // If updating state, clear city
     if (parent === 'location' && field === 'state') {
       setPreferences(prev => ({
         ...prev,
@@ -197,8 +294,31 @@ const MatrimonialProfile = () => {
           city: ''
         }
       }));
+      
+      // Clear city error when state changes
+      setErrors(prev => ({
+        ...prev,
+        city: ''
+      }));
+      
+      // Validate state
+      setTimeout(() => {
+        validateField('state', value);
+      }, 0);
+    } else if (parent === 'location' && field === 'city') {
+      // Validate city
+      setTimeout(() => {
+        validateField('city', value);
+      }, 0);
     } else {
-      // For other fields
+      // Clear range error when user makes a selection
+      if (errors[parent]) {
+        setErrors(prev => ({
+          ...prev,
+          [parent]: ''
+        }));
+      }
+      
       setTimeout(() => {
         validateRange(parent, updatedValues);
       }, 0);
@@ -351,7 +471,6 @@ const MatrimonialProfile = () => {
           updatePreference('occupationType', value);
           break;
         case 'state':
-          // Updated to directly set both state and clear city in one operation
           setPreferences(prev => ({
             ...prev,
             location: {
@@ -359,6 +478,16 @@ const MatrimonialProfile = () => {
               city: ''
             }
           }));
+          // Clear errors
+          setErrors(prev => ({
+            ...prev,
+            state: '',
+            city: ''
+          }));
+          // Validate state
+          setTimeout(() => {
+            validateField('state', value);
+          }, 0);
           break;
         case 'city':
           if (value !== "No cities available") {
@@ -369,15 +498,33 @@ const MatrimonialProfile = () => {
                 city: value
               }
             }));
+            // Clear city error
+            setErrors(prev => ({
+              ...prev,
+              city: ''
+            }));
+            // Validate city
+            setTimeout(() => {
+              validateField('city', value);
+            }, 0);
           }
           break;
         case 'religion':
-          // Clear caste when religion changes
           setPreferences(prev => ({
             ...prev,
             religion: value,
             caste: ''
           }));
+          // Clear errors
+          setErrors(prev => ({
+            ...prev,
+            religion: '',
+            caste: ''
+          }));
+          // Validate religion
+          setTimeout(() => {
+            validateField('religion', value);
+          }, 0);
           break;
         case 'caste':
           updatePreference('caste', value);
@@ -404,101 +551,141 @@ const MatrimonialProfile = () => {
     });
   };
 
-  const router = useRouter();
   const validateAllFields = () => {
-    const validations = [
+    let isValid = true;
+    const newErrors = {};
+
+    // Validate all individual fields
+    const fieldsToValidate = [
+      'sex', 'educationLevel', 'occupationType', 'religion', 'lifestyle'
+    ];
+
+    fieldsToValidate.forEach(field => {
+      const fieldValue = preferences[field];
+      if (!validateField(field, fieldValue)) {
+        isValid = false;
+      }
+    });
+
+    // Validate location fields
+    if (!validateField('state', preferences.location.state)) {
+      isValid = false;
+    }
+    if (!validateField('city', preferences.location.city)) {
+      isValid = false;
+    }
+
+    // Validate otherSex if sex is Others
+    if (!validateField('otherSex', preferences.otherSex)) {
+      isValid = false;
+    }
+
+    // Validate caste if religion is selected
+    if (!validateField('caste', preferences.caste)) {
+      isValid = false;
+    }
+
+    // Validate ranges
+    const rangeValidations = [
       validateRange('ageRange', preferences.ageRange),
       validateRange('heightRange', preferences.heightRange),
       validateRange('weight', preferences.weight)
     ];
     
-    return validations.every(valid => valid);
+    if (!rangeValidations.every(valid => valid)) {
+      isValid = false;
+    }
+
+    return isValid;
   };
 
+  const handleSavePreferences = async () => {
+    if (validateAllFields()) {
+      const displayPreferences = { ...preferences };
 
-
-const handleSavePreferences = async () => {
-  if (validateAllFields()) {
-    const displayPreferences = { ...preferences };
-
-    if (preferences.heightRange.unit === 'cm') {
-      if (displayPreferences.heightRange.min) {
-        displayPreferences.heightRange.min += ' cm';
-      }
-      if (displayPreferences.heightRange.max) {
-        displayPreferences.heightRange.max += ' cm';
-      }
-    }
-
-    if (displayPreferences.weight.min) {
-      displayPreferences.weight.min += ' kg';
-    }
-    if (displayPreferences.weight.max) {
-      displayPreferences.weight.max += ' kg';
-    }
-
-    const payloadData = {
-      minAge: preferences.ageRange.min,
-      maxAge: preferences.ageRange.max,
-      minHeight: preferences.heightRange.min,
-      maxHeight: preferences.heightRange.max,
-      heightUnit: preferences.heightRange.unit,
-      minWeight: preferences.weight.min,
-      maxWeight: preferences.weight.max,
-      weightUnit: preferences.weight.unit?.split(" ")[1] || "kg",
-      caste: preferences.caste,
-      religion: preferences.religion,
-      lifestyle: preferences.lifestyle,
-      state: preferences.location.state,
-      city: preferences.location.city,
-      sex: preferences.sex,
-      otherSex: preferences.otherSex,
-      educationLevel: preferences.educationLevel,
-      occupationType: preferences.occupationType,
-    };
-
-    try {
-      const token = await AsyncStorage.getItem('token');
-
-      if (!token) {
-        Alert.alert('Error', 'User not logged in. Token not found.');
-        return;
-      }
-
-      const res = await axios.post(
-        'http://stu.globalknowledgetech.com:5003/partnerpreference/create-preference',
-        payloadData,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`
-          }
+      if (preferences.heightRange.unit === 'cm') {
+        if (displayPreferences.heightRange.min) {
+          displayPreferences.heightRange.min += ' cm';
         }
+        if (displayPreferences.heightRange.max) {
+          displayPreferences.heightRange.max += ' cm';
+        }
+      }
+
+      if (displayPreferences.weight.min) {
+        displayPreferences.weight.min += ' kg';
+      }
+      if (displayPreferences.weight.max) {
+        displayPreferences.weight.max += ' kg';
+      }
+
+      const payloadData = {
+        minAge: preferences.ageRange.min,
+        maxAge: preferences.ageRange.max,
+        minHeight: preferences.heightRange.min,
+        maxHeight: preferences.heightRange.max,
+        heightUnit: preferences.heightRange.unit,
+        minWeight: preferences.weight.min,
+        maxWeight: preferences.weight.max,
+        weightUnit: preferences.weight.unit?.split(" ")[1] || "kg",
+        caste: preferences.caste,
+        religion: preferences.religion,
+        lifestyle: preferences.lifestyle,
+        state: preferences.location.state,
+        city: preferences.location.city,
+        sex: preferences.sex,
+        otherSex: preferences.otherSex,
+        educationLevel: preferences.educationLevel,
+        occupationType: preferences.occupationType,
+      };
+
+      try {
+        const token = await AsyncStorage.getItem('token');
+
+        if (!token) {
+          Alert.alert('Error', 'User not logged in. Token not found.');
+          return;
+        }
+
+        const res = await axios.post(
+          'http://stu.globalknowledgetech.com:5003/partnerpreference/create-preference',
+          payloadData,
+          {
+            headers: {
+              Authorization: `Bearer ${token}`
+            }
+          }
+        );
+
+        console.log('Preference save success:', res.data);
+        router.push('/navigation/MainTabs');
+        Alert.alert('Success', 'Partner preferences saved successfully!');
+      } catch (err) {
+        console.log('Preference save failed:', err);
+        Alert.alert('Error', 'Failed to save preferences.');
+      }
+
+      console.log('Saving preferences:', displayPreferences);
+      
+    } else {
+      // Show specific validation errors
+      const errorMessages = [];
+      Object.keys(errors).forEach(key => {
+        if (errors[key]) {
+          const fieldLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+          errorMessages.push(`${fieldLabel}: ${errors[key]}`);
+        }
+      });
+
+      Alert.alert(
+        'Validation Error',
+        errorMessages.length > 0 
+          ? `Please fix the following issues:\n\n${errorMessages.join('\n')}`
+          : 'Please fill in all required fields.',
+        [{ text: 'OK' }]
       );
-
-      console.log('Preference save success:', res.data);
-      router.push('/navigation/MainTabs')
-      Alert.alert('Success', 'Partner preferences saved successfully!');
-    } catch (err) {
-      console.log('Preference save failed:', err);
-      Alert.alert('Error', 'Failed to save preferences.');
     }
-
-    console.log('Saving preferences:', displayPreferences);
-    
-  } else {
-    const errorMessages = [];
-    if (errors.ageRange) errorMessages.push(`Age: ${errors.ageRange}`);
-    if (errors.heightRange) errorMessages.push(`Height: ${errors.heightRange}`);
-    if (errors.weight) errorMessages.push(`Weight: ${errors.weight}`);
-
-    Alert.alert(
-      'Validation Error',
-      `Please fix the following issues:\n${errorMessages.join('\n')}`,
-      [{ text: 'OK' }]
-    );
-  }
-};
-
+  };
 
   const renderError = (errorText) => {
     if (!errorText) return null;
@@ -522,34 +709,35 @@ const handleSavePreferences = async () => {
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
       >
-              <View style={{
-                width: '100%',
-                backgroundColor: '#EC4899',
-                paddingVertical: 24,
-                shadowColor: '#000',
-                shadowOffset: { width: 0, height: 2 },
-                shadowOpacity: 0.2,
-                shadowRadius: 4,
-                elevation: 3
-              }}>
-                <Text style={{
-                  color: 'white',
-                  fontSize: 25,
-                  fontWeight: 'bold',
-                  textAlign: 'center'
-                }}>
-                 Create Profile
-                </Text>
-                <Text style={{
-                  color: 'white',
-                  textAlign: 'center',
-                  marginTop: 6,
-                  opacity: 0.9,
-                  fontSize:18
-                }}>
-                  Find your perfect match by completing your profile
-                </Text>
-              </View>
+        <View style={{
+          width: '100%',
+          backgroundColor: '#EC4899',
+          paddingVertical: 24,
+          shadowColor: '#000',
+          shadowOffset: { width: 0, height: 2 },
+          shadowOpacity: 0.2,
+          shadowRadius: 4,
+          elevation: 3
+        }}>
+          <Text style={{
+            color: 'white',
+            fontSize: 25,
+            fontWeight: 'bold',
+            textAlign: 'center'
+          }}>
+           Create Profile
+          </Text>
+          <Text style={{
+            color: 'white',
+            textAlign: 'center',
+            marginTop: 6,
+            opacity: 0.9,
+            fontSize:18
+          }}>
+            Find your perfect match by completing your profile
+          </Text>
+        </View>
+        
         <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
           <View style={styles.header}>
             <Text style={styles.heading}>Partner Preferences</Text>
@@ -558,7 +746,7 @@ const handleSavePreferences = async () => {
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Basic Details</Text>
             
-            <Text style={styles.label}>Age Range (years)</Text>
+            <Text style={styles.label}>Age Range (years) *</Text>
             <View style={styles.rangeContainer}>
               <TouchableOpacity 
                 style={[
@@ -601,7 +789,7 @@ const handleSavePreferences = async () => {
             {renderError(errors.ageRange)}
 
             <View style={styles.labelRow}>
-              <Text style={styles.label}>Height Range</Text>
+              <Text style={styles.label}>Height Range *</Text>
               <TouchableOpacity 
                 style={styles.unitToggle}
                 onPress={toggleHeightUnit}
@@ -660,7 +848,7 @@ const handleSavePreferences = async () => {
             </View>
             {renderError(errors.heightRange)}
 
-            <Text style={styles.label}>Weight Range (kg)</Text>
+            <Text style={styles.label}>Weight Range (kg) *</Text>
             <View style={styles.rangeContainer}>
               <TouchableOpacity 
                 style={[
@@ -702,12 +890,15 @@ const handleSavePreferences = async () => {
             </View>
             {renderError(errors.weight)}
 
-            <Text style={styles.label}>Sex</Text>
+            <Text style={styles.label}>Sex *</Text>
             <TouchableOpacity 
-              style={styles.dropdownSelector}
+              style={[
+                styles.dropdownSelector,
+                errors.sex ? styles.inputError : null
+              ]}
               onPress={() => openPopup('sex', 'Select Sex')}
             >
-              <Ionicons name="person-outline" size={20} color="#db2777" />
+              <Ionicons name="person-outline" size={20} color={errors.sex ? "#ef4444" : "#db2777"} />
               <Text style={[
                 styles.dropdownText, 
                 !preferences.sex && styles.dropdownPlaceholder
@@ -716,28 +907,36 @@ const handleSavePreferences = async () => {
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
             </TouchableOpacity>
+            {renderError(errors.sex)}
             
             {preferences.sex === 'Others' && (
               <View style={styles.inputGroup}>
                 <TextInput
                   placeholder="Please specify"
-                  style={styles.input}
+                  style={[
+                    styles.input,
+                    errors.otherSex ? styles.inputError : null
+                  ]}
                   value={preferences.otherSex}
                   onChangeText={(value) => updatePreference('otherSex', value)}
                 />
               </View>
             )}
+            {preferences.sex === 'Others' && renderError(errors.otherSex)}
           </View>
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Education & Career</Text>
             
-            <Text style={styles.label}>Education Level</Text>
+            <Text style={styles.label}>Education Level *</Text>
             <TouchableOpacity 
-              style={styles.dropdownSelector}
+              style={[
+                styles.dropdownSelector,
+                errors.educationLevel ? styles.inputError : null
+              ]}
               onPress={() => openPopup('education', 'Select Education Level')}
             >
-              <Ionicons name="school-outline" size={20} color="#db2777" />
+              <Ionicons name="school-outline" size={20} color={errors.educationLevel ? "#ef4444" : "#db2777"} />
               <Text style={[
                 styles.dropdownText, 
                 !preferences.educationLevel && styles.dropdownPlaceholder
@@ -746,13 +945,17 @@ const handleSavePreferences = async () => {
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
             </TouchableOpacity>
+            {renderError(errors.educationLevel)}
 
-            <Text style={styles.label}>Occupation Type</Text>
+            <Text style={styles.label}>Occupation Type *</Text>
             <TouchableOpacity 
-              style={styles.dropdownSelector}
+              style={[
+                styles.dropdownSelector,
+                errors.occupationType ? styles.inputError : null
+              ]}
               onPress={() => openPopup('occupation', 'Select Occupation Type')}
             >
-              <Ionicons name="briefcase-outline" size={20} color="#db2777" />
+              <Ionicons name="briefcase-outline" size={20} color={errors.occupationType ? "#ef4444" : "#db2777"} />
               <Text style={[
                 styles.dropdownText, 
                 !preferences.occupationType && styles.dropdownPlaceholder
@@ -761,17 +964,21 @@ const handleSavePreferences = async () => {
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
             </TouchableOpacity>
+            {renderError(errors.occupationType)}
           </View>
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Location & Background</Text>
             
-            <Text style={styles.label}>State</Text>
+            <Text style={styles.label}>State *</Text>
             <TouchableOpacity 
-              style={styles.dropdownSelector}
+              style={[
+                styles.dropdownSelector,
+                errors.state ? styles.inputError : null
+              ]}
               onPress={() => openPopup('state', 'Select State')}
             >
-              <Ionicons name="location-outline" size={20} color="#db2777" />
+              <Ionicons name="location-outline" size={20} color={errors.state ? "#ef4444" : "#db2777"} />
               <Text style={[
                 styles.dropdownText, 
                 !preferences.location.state && styles.dropdownPlaceholder
@@ -780,17 +987,22 @@ const handleSavePreferences = async () => {
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
             </TouchableOpacity>
+            {renderError(errors.state)}
 
-            <Text style={styles.label}>City</Text>
+            <Text style={styles.label}>City *</Text>
             <TouchableOpacity 
               style={[
                 styles.dropdownSelector,
-                !preferences.location.state && styles.disabledDropdown
+                (!preferences.location.state && styles.disabledDropdown) || 
+                (errors.city && styles.inputError)
               ]}
               onPress={() => preferences.location.state ? openPopup('city', 'Select City') : null}
               disabled={!preferences.location.state}
             >
-              <Ionicons name="business-outline" size={20} color={preferences.location.state ? "#db2777" : "#94a3b8"} />
+              <Ionicons name="business-outline" size={20} color={
+                !preferences.location.state ? "#94a3b8" : 
+                errors.city ? "#ef4444" : "#db2777"
+              } />
               <Text style={[
                 styles.dropdownText, 
                 !preferences.location.city && styles.dropdownPlaceholder,
@@ -800,13 +1012,17 @@ const handleSavePreferences = async () => {
               </Text>
               <Ionicons name="chevron-forward" size={20} color={preferences.location.state ? "#64748b" : "#94a3b8"} />
             </TouchableOpacity>
+            {renderError(errors.city)}
 
-            <Text style={styles.label}>Religion</Text>
+            <Text style={styles.label}>Religion *</Text>
             <TouchableOpacity 
-              style={styles.dropdownSelector}
+              style={[
+                styles.dropdownSelector,
+                errors.religion ? styles.inputError : null
+              ]}
               onPress={() => openPopup('religion', 'Select Religion')}
             >
-              <Ionicons name="planet-outline" size={20} color="#db2777" />
+              <Ionicons name="planet-outline" size={20} color={errors.religion ? "#ef4444" : "#db2777"} />
               <Text style={[
                 styles.dropdownText, 
                 !preferences.religion && styles.dropdownPlaceholder
@@ -815,17 +1031,22 @@ const handleSavePreferences = async () => {
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
             </TouchableOpacity>
+            {renderError(errors.religion)}
 
-            <Text style={styles.label}>Caste</Text>
+            <Text style={styles.label}>Caste {preferences.religion && '*'}</Text>
             <TouchableOpacity 
               style={[
                 styles.dropdownSelector,
-                !preferences.religion && styles.disabledDropdown
+                (!preferences.religion && styles.disabledDropdown) ||
+                (errors.caste && styles.inputError)
               ]}
               onPress={() => preferences.religion ? openPopup('caste', 'Select Caste') : null}
               disabled={!preferences.religion}
             >
-              <Ionicons name="people-outline" size={20} color={preferences.religion ? "#db2777" : "#94a3b8"} />
+              <Ionicons name="people-outline" size={20} color={
+                !preferences.religion ? "#94a3b8" :
+                errors.caste ? "#ef4444" : "#db2777"
+              } />
               <Text style={[
                 styles.dropdownText, 
                 !preferences.caste && styles.dropdownPlaceholder,
@@ -835,17 +1056,21 @@ const handleSavePreferences = async () => {
               </Text>
               <Ionicons name="chevron-forward" size={20} color={preferences.religion ? "#64748b" : "#94a3b8"} />
             </TouchableOpacity>
+            {renderError(errors.caste)}
           </View>
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Lifestyle</Text>
             
-            <Text style={styles.label}>Lifestyle Expectations</Text>
+            <Text style={styles.label}>Lifestyle Expectations *</Text>
             <TouchableOpacity 
-              style={styles.dropdownSelector}
+              style={[
+                styles.dropdownSelector,
+                errors.lifestyle ? styles.inputError : null
+              ]}
               onPress={() => openPopup('lifestyle', 'Select Lifestyle')}
             >
-              <Ionicons name="restaurant-outline" size={20} color="#db2777" />
+              <Ionicons name="restaurant-outline" size={20} color={errors.lifestyle ? "#ef4444" : "#db2777"} />
               <Text style={[
                 styles.dropdownText, 
                 !preferences.lifestyle && styles.dropdownPlaceholder
@@ -854,6 +1079,7 @@ const handleSavePreferences = async () => {
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
             </TouchableOpacity>
+            {renderError(errors.lifestyle)}
           </View>
 
           <TouchableOpacity 
@@ -868,6 +1094,9 @@ const handleSavePreferences = async () => {
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               Your preferences help us find your perfect match
+            </Text>
+            <Text style={styles.requiredText}>
+              * Required fields
             </Text>
           </View>
         </ScrollView>
@@ -945,8 +1174,7 @@ const handleSavePreferences = async () => {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-}
-
+};
 
 const { width, height } = Dimensions.get('window');
 
@@ -985,9 +1213,7 @@ const styles = StyleSheet.create({
     color: '#334155',
     marginBottom: 16,
   },
-
-
-   labelRow: {
+  labelRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
@@ -1012,21 +1238,22 @@ const styles = StyleSheet.create({
     backgroundColor: '#f1f5f9',
     borderRadius: 12,
     paddingHorizontal: 12,
-    marginBottom: 16,
+    marginBottom: 6,
+    marginTop: 4,
   },
   rangeContainer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginBottom: 16,
+    marginBottom: 6,
+    marginTop: 4,
   },
   halfInput: {
     flex: 1,
   },
   rangeText: {
-    marginTop:-15,
     marginHorizontal: 10,
-    fontSize:15,
+    fontSize: 15,
     color: '#64748b',
   },
   input: {
@@ -1043,7 +1270,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 14,
     marginBottom: 6,
-    marginTop:4,
+    marginTop: 4,
   },
   dropdownText: {
     flex: 1,
@@ -1060,6 +1287,24 @@ const styles = StyleSheet.create({
   },
   disabledText: {
     color: '#94a3b8',
+  },
+  inputError: {
+    borderColor: '#ef4444',
+    borderWidth: 1.5,
+    backgroundColor: '#fef2f2',
+  },
+  errorContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 2,
+    marginBottom: 8,
+    paddingHorizontal: 4,
+  },
+  errorText: {
+    color: '#ef4444',
+    fontSize: 12,
+    marginLeft: 4,
+    flex: 1,
   },
   button: {
     backgroundColor: '#db2777',
@@ -1091,8 +1336,14 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#94a3b8',
     textAlign: 'center',
+    marginBottom: 8,
   },
-  
+  requiredText: {
+    fontSize: 12,
+    color: '#ef4444',
+    textAlign: 'center',
+    fontStyle: 'italic',
+  },
   modalContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -1163,6 +1414,5 @@ const styles = StyleSheet.create({
     fontWeight: '500',
   }
 });
-
 
 export default MatrimonialProfile;

@@ -8,8 +8,6 @@ export default function RootLayout() {
       <Stack.Screen name="profile" options={{ headerShown: false }} />
       <Stack.Screen name="(auth)" options={{ headerShown: false }} />
       <Stack.Screen name="navigation" options={{ headerShown: false}} />
-
-
     </Stack>
   );
 }

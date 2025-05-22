@@ -1,6 +1,6 @@
 import axios from "axios";
 import { useRouter } from "expo-router";
-import { ChevronDown, Lock, Mail, Phone, User, X } from "lucide-react-native";
+import { ChevronDown, Eye, EyeOff, Lock, Mail, Phone, User, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
   Animated,
@@ -124,6 +124,53 @@ const Field = ({ label, error, icon, children, animationStyle, isFocused }) => {
       >
         {icon}
         {children}
+      </View>
+      {error ? <Text style={styles.errorText}>{error}</Text> : null}
+    </Animated.View>
+  );
+};
+
+// Enhanced PasswordField component with visibility toggle
+const PasswordField = ({ label, error, placeholder, value, onChangeText, onFocus, onBlur, animationStyle, isFocused }) => {
+  const [isPasswordVisible, setIsPasswordVisible] = useState(false);
+  
+  const togglePasswordVisibility = () => {
+    setIsPasswordVisible(!isPasswordVisible);
+  };
+
+  return (
+    <Animated.View style={[animationStyle, styles.fieldContainer]}>
+      <Text style={styles.label}>{label}</Text>
+      <View
+        style={[
+          styles.inputWrapper,
+          { borderColor: isFocused ? "#db2777" : "#d1d5db" },
+        ]}
+      >
+        <Lock size={20} color={isFocused ? "#db2777" : "#9ca3af"} />
+        <TextInput
+          placeholder={placeholder}
+          secureTextEntry={!isPasswordVisible}
+          value={value}
+          onChangeText={onChangeText}
+          onFocus={onFocus}
+          onBlur={onBlur}
+          style={[
+            styles.input,
+            { color: isFocused ? "#db2777" : "#374151" },
+          ]}
+        />
+        <TouchableOpacity
+          onPress={togglePasswordVisibility}
+          style={styles.eyeButton}
+          hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+        >
+          {isPasswordVisible ? (
+            <EyeOff size={20} color={isFocused ? "#db2777" : "#9ca3af"} />
+          ) : (
+            <Eye size={20} color={isFocused ? "#db2777" : "#9ca3af"} />
+          )}
+        </TouchableOpacity>
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
     </Animated.View>
@@ -269,6 +316,7 @@ export default function CreateAccount() {
   const emailAnimation = useFieldAnimation(4);
   const numberAnimation = useFieldAnimation(5);
   const passwordAnimation = useFieldAnimation(6);
+  const confirmPasswordAnimation = useFieldAnimation(7);
 
   const goToLogin = () => {
     router.push('/');
@@ -356,8 +404,6 @@ const handleSubmit = async () => {
       ? formData.customGender
       : formData.gender;
 
-
-
       let payloadData ={
         firstName:finalFormData.firstName,
         lastName:finalFormData.lastName,
@@ -384,7 +430,6 @@ const handleSubmit = async () => {
   }
 };
 
-
   const getFieldIcon = (fieldName) => {
     const color = focusedField === fieldName ? "#db2777" : "#9ca3af";
     switch (fieldName) {
@@ -395,9 +440,6 @@ const handleSubmit = async () => {
         return <Mail size={20} color={color} />;
       case "phoneNo":
         return <Phone size={20} color={color} />;
-      case "password":
-      case "confirmPassword":
-        return <Lock size={20} color={color} />;
       case "customGender":
         return <User size={20} color={color} />;
       default:
@@ -570,47 +612,29 @@ const handleSubmit = async () => {
                 />
               </Field>
 
-              <Field
+              <PasswordField
                 label="Password"
                 error={errors.password}
-                icon={getFieldIcon("password")}
+                placeholder="Create a password"
+                value={formData.password}
+                onChangeText={(val) => handleChange("password", val)}
+                onFocus={() => setFocusedField("password")}
+                onBlur={() => setFocusedField(null)}
                 animationStyle={passwordAnimation}
                 isFocused={focusedField === "password"}
-              >
-                <TextInput
-                  placeholder="Create a password"
-                  secureTextEntry
-                  value={formData.password}
-                  onChangeText={(val) => handleChange("password", val)}
-                  onFocus={() => setFocusedField("password")}
-                  onBlur={() => setFocusedField(null)}
-                  style={[
-                    styles.input,
-                    { color: focusedField === "password" ? "#db2777" : "#374151" },
-                  ]}
-                />
-              </Field>
+              />
 
-              <Field
+              <PasswordField
                 label="Confirm Password"
                 error={errors.confirmPassword}
-                icon={getFieldIcon("confirmPassword")}
-                animationStyle={passwordAnimation}
+                placeholder="Confirm your password"
+                value={formData.confirmPassword}
+                onChangeText={(val) => handleChange("confirmPassword", val)}
+                onFocus={() => setFocusedField("confirmPassword")}
+                onBlur={() => setFocusedField(null)}
+                animationStyle={confirmPasswordAnimation}
                 isFocused={focusedField === "confirmPassword"}
-              >
-                <TextInput
-                  placeholder="Confirm your password"
-                  secureTextEntry
-                  value={formData.confirmPassword}
-                  onChangeText={(val) => handleChange("confirmPassword", val)}
-                  onFocus={() => setFocusedField("confirmPassword")}
-                  onBlur={() => setFocusedField(null)}
-                  style={[
-                    styles.input,
-                    { color: focusedField === "confirmPassword" ? "#db2777" : "#374151" },
-                  ]}
-                />
-              </Field>
+              />
 
               <TouchableOpacity
                 onPress={handleSubmit}
@@ -729,6 +753,10 @@ const styles = StyleSheet.create({
     flex: 1,
     paddingVertical: 12,
     paddingLeft: 8,
+  },
+  eyeButton: {
+    padding: 4,
+    marginLeft: 8,
   },
   errorText: {
     color: "#ef4444",
