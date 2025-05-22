@@ -22,7 +22,7 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
-import {useRouter} from 'expo-router';
+import {router} from 'expo-router';
 import { useEffect } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
@@ -115,7 +115,6 @@ const MatrimonialProfile = () => {
 
   const[formData, setFormData] = useState({})
   const[dietPreferences,setDietPreferences] = useState([]);
-  const router = useRouter();
 
 
   // useEffect(()=>{
@@ -163,7 +162,7 @@ const MatrimonialProfile = () => {
     })
     .then(res =>{
       if(res.status === 200){
-        router.push("/profile/PartnerPreference")
+        router.push("/profile/PartnerPreference");
       }
       
     })

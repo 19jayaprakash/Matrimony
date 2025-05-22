@@ -15,7 +15,7 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useEffect } from 'react';
  
@@ -193,6 +193,7 @@ const degreeOptions = {
       const data = await response.json();
  
       if (response.ok) {
+        router.push("/profile/FamilyDetails");
         console.log('Professional details submitted successfully:', data);
         // You can show a success message or navigate to another screen
       } else {
