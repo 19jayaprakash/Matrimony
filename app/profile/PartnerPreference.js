@@ -1,4 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
+import axios from 'axios';
 import { useRouter } from 'expo-router';
 import { useRef, useState } from 'react';
 import {
@@ -45,6 +46,11 @@ const CITIES_BY_STATE = {
   "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad"],
   "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirunelveli"],
   "Karnataka": ["Bengaluru", "Mysuru", "Hubli", "Mangaluru", "Belgaum", "Gulbarga"],
+  // Add some default cities for other states to improve user experience
+  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool"],
+  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
+  "Delhi": ["New Delhi", "North Delhi", "South Delhi", "East Delhi", "West Delhi"],
+  "Uttar Pradesh": ["Lucknow", "Kanpur", "Agra", "Varanasi", "Prayagraj", "Noida"],
 };
 
 const RELIGIONS = [
@@ -102,7 +108,7 @@ const cmToFt = (cm) => {
   return `${feet}'${inches}"`;
 };
 
-const MatrimonialProfile = ()=>{
+const MatrimonialProfile = () => {
   const [preferences, setPreferences] = useState({
     ageRange: { min: '', max: '' },
     heightRange: { min: '', max: '', unit: 'cm' }, 
@@ -181,26 +187,40 @@ const MatrimonialProfile = ()=>{
       [parent]: updatedValues
     }));
 
-    setTimeout(() => {
-      validateRange(parent, updatedValues);
-    }, 0);
+    // If updating state, clear city
+    if (parent === 'location' && field === 'state') {
+      setPreferences(prev => ({
+        ...prev,
+        location: {
+          ...prev.location,
+          state: value,
+          city: ''
+        }
+      }));
+    } else {
+      // For other fields
+      setTimeout(() => {
+        validateRange(parent, updatedValues);
+      }, 0);
+    }
   };
   
-const toggleHeightUnit = () => {
-  setPreferences(prev => ({
-    ...prev,
-    heightRange: {
-      min: '',  
-      max: '',  
-      unit: prev.heightRange.unit === 'cm' ? 'ft' : 'cm' 
-    }
-  }));
+  const toggleHeightUnit = () => {
+    setPreferences(prev => ({
+      ...prev,
+      heightRange: {
+        min: '',  
+        max: '',  
+        unit: prev.heightRange.unit === 'cm' ? 'ft' : 'cm' 
+      }
+    }));
 
-  setErrors(prev => ({
-    ...prev,
-    heightRange: ''
-  }));
-};
+    setErrors(prev => ({
+      ...prev,
+      heightRange: ''
+    }));
+  };
+
   const openPopup = (type, title, minMaxField = '') => {
     let items = [];
     
@@ -218,13 +238,17 @@ const toggleHeightUnit = () => {
         items = INDIAN_STATES;
         break;
       case 'city':
-        items = preferences.location.state ? CITIES_BY_STATE[preferences.location.state] || [] : [];
+        items = preferences.location.state && CITIES_BY_STATE[preferences.location.state] 
+          ? CITIES_BY_STATE[preferences.location.state] 
+          : ["No cities available"];
         break;
       case 'religion':
         items = RELIGIONS;
         break;
       case 'caste':
-        items = preferences.religion ? CASTES[preferences.religion] || [] : [];
+        items = preferences.religion && CASTES[preferences.religion] 
+          ? CASTES[preferences.religion] 
+          : [];
         break;
       case 'lifestyle':
         items = LIFESTYLE_TYPES;
@@ -327,15 +351,33 @@ const toggleHeightUnit = () => {
           updatePreference('occupationType', value);
           break;
         case 'state':
-          updateNestedPreference('location', 'state', value);
-          updateNestedPreference('location', 'city', ''); 
+          // Updated to directly set both state and clear city in one operation
+          setPreferences(prev => ({
+            ...prev,
+            location: {
+              state: value,
+              city: ''
+            }
+          }));
           break;
         case 'city':
-          updateNestedPreference('location', 'city', value);
+          if (value !== "No cities available") {
+            setPreferences(prev => ({
+              ...prev,
+              location: {
+                ...prev.location,
+                city: value
+              }
+            }));
+          }
           break;
         case 'religion':
-          updatePreference('religion', value);
-          updatePreference('caste', ''); 
+          // Clear caste when religion changes
+          setPreferences(prev => ({
+            ...prev,
+            religion: value,
+            caste: ''
+          }));
           break;
         case 'caste':
           updatePreference('caste', value);
@@ -373,7 +415,7 @@ const toggleHeightUnit = () => {
     return validations.every(valid => valid);
   };
 
-  const handleSavePreferences = () => {
+  const handleSavePreferences = async () => {
     if (validateAllFields()) {
       const displayPreferences = {...preferences};
       
@@ -392,9 +434,46 @@ const toggleHeightUnit = () => {
       if (displayPreferences.weight.max) {
         displayPreferences.weight.max += ' kg';
       }
-      
+
+       let payloadData = {
+    minAge: preferences.ageRange.min,
+    maxAge: preferences.ageRange.max,
+    minHeight: preferences.heightRange.min,
+    maxHeight: preferences.heightRange.max,
+    heightUnit: preferences.heightRange.unit,
+    minWeight: preferences.weight.min,
+    maxWeight: preferences.weight.max,
+    weightUnit: preferences.weight.unit?.split(" ")[1] || "cm", 
+    caste: preferences.caste,
+    religion: preferences.religion,
+    lifestyle: preferences.lifestyle,
+    state: preferences.location.state,
+    city: preferences.location.city,
+    sex: preferences.sex,
+    otherSex: preferences.otherSex,
+    educationLevel: preferences.educationLevel,
+    occupationType: preferences.occupationType,
+}
+
+
+       await axios.post(
+  "http://stu.globalknowledgetech.com:5003/partnerpreference/create-preference",
+  payloadData,
+  {
+    headers: {
+      Authorization: `Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ1c2VySWQiOjQsImlhdCI6MTc0Nzg0NTQxMSwiZXhwIjoxNzQ3ODUyNjExfQ.dWbfWPW-cJ4ZCuRgQ2TuidydsD6eJzoLy_XEBF7Q9f0`
+    }
+  }
+)
+.then(res => {
+  console.log(res);
+})
+.catch(err => {
+  console.log(err);
+});
+
       console.log('Saving preferences:', displayPreferences);
-      router.push('../navigation/MainTabs');
+      // router.push('../navigation/MainTabs');
       Alert.alert("Success", "Partner preferences saved successfully!");
     } else {
       const errorMessages = [];

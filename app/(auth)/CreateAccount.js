@@ -338,40 +338,52 @@ export default function CreateAccount() {
     return newErrors;
   };
 
-  const handleSubmit = async () => {
-    const validationErrors = validateForm();
+const handleSubmit = async () => {
+  const validationErrors = validateForm();
 
-    if (Object.keys(validationErrors).length > 0) {
-      setErrors(validationErrors);
-      const firstErrorField = Object.keys(validationErrors)[0];
-      scrollToField(scrollViewRef, firstErrorField);
-      return;
+  if (Object.keys(validationErrors).length > 0) {
+    setErrors(validationErrors);
+    const firstErrorField = Object.keys(validationErrors)[0];
+    scrollToField(scrollViewRef, firstErrorField);
+    return;
+  }
+
+  setIsSubmitting(true);
+
+  const finalFormData = { ...formData };
+  finalFormData.actualGender =
+    formData.gender === 'other' && formData.customGender
+      ? formData.customGender
+      : formData.gender;
+
+
+
+      let payloadData ={
+        firstName:finalFormData.firstName,
+        lastName:finalFormData.lastName,
+        email:finalFormData.email,
+        phoneNo:finalFormData.phoneNo,
+        password:finalFormData.password,
+
+      }
+  try {
+    const res = await axios.post(
+      "http://stu.globalknowledgetech.com:5003/auth/register",
+      payloadData
+    );
+
+    if (res.status === 200) {
+      console.log("Registration successful:", res.data);
+      router.push("/");
     }
+  } catch (err) {
+    console.error("Registration error:", err);
+  } finally {
+    setIsSubmitting(false);
+    console.log("Form Data Submitted:", finalFormData);
+  }
+};
 
-    setIsSubmitting(true);
-
-    const finalFormData = { ...formData };
-    if (formData.gender === 'other' && formData.customGender) {
-      finalFormData.actualGender = formData.customGender;
-    } else {
-      finalFormData.actualGender = formData.gender;
-    } 
-    
-   
-
-    await axios.post("http://stu.globalknowledgetech.com:5003/auth/register", finalFormData)
-    .then(res =>{
-      console.log(res);
-    })
-    .catch(err =>{
-      console.log(err);
-    })
-
-    setTimeout(() => {
-      console.log("Form Data Submitted:", finalFormData);
-      router.push("/profile/BasicDetails");
-    }, 1500);
-  };
 
   const getFieldIcon = (fieldName) => {
     const color = focusedField === fieldName ? "#db2777" : "#9ca3af";

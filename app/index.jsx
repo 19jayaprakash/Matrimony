@@ -1,4 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
 import { useState } from 'react';
 import {
@@ -18,6 +20,7 @@ const LoginScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
   const isMobile = width < 768;
+  const router = useRouter();
  
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -34,29 +37,30 @@ const LoginScreen = ({ navigation }) => {
       password: password,
     }
     
-    await axios.post('http://stu.globalknowledgetech.com:5003/auth/login', user)
-    .then((data) => {
-      console.log('Success:', data);
-      localStorage.setItem('token', data?.data?.accessToken);
-      localStorage.setItem("refreshToken", data?.data?.refreshToken);
-    })
-    .catch((error) => {
-      console.error('Error:', error);
-    });
+    try {
+      const response = await axios.post('http://stu.globalknowledgetech.com:5003/auth/login', user);
 
+      if (response.status === 200) {
+        console.log('Success:', response);
+        await AsyncStorage.setItem('token', response.data.accessToken);
+      await AsyncStorage.setItem('refreshToken', response.data.refreshToken);
+        router.push('/profile/BasicDetails');
+      }
+    } catch (error) {
+      console.error('Login failed:', error.response?.data?.message || error.message);
+    }
 
     
-    navigation.navigate('/Dashboard/Dashboard');
   };
  
   // Navigate back to landing page
   const goBack = () => {
-    navigation.goBack();
+    router.back();
   };
  
   // Navigate to Register page
   const goToRegister = () => {
-    navigation.navigate('Register');
+    router.push('/(auth)/CreateAccount');
   };
  
   return (
