@@ -1,3 +1,4 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Picker } from '@react-native-picker/picker';
 import { useRouter } from 'expo-router';
 import {
@@ -127,15 +128,72 @@ const incomeOptions = [
   '₹15L - ₹30L',
   'Above ₹30L'
 ];
+const degreeOptions = {
+  high_school: [
+    { label: '10th Grade', value: '10th' },
+    { label: '12th Grade', value: '12th' }
+  ],
+  diploma: [
+    { label: 'Engineering Diploma', value: 'eng_diploma' },
+    { label: 'Business Diploma', value: 'biz_diploma' }
+  ],
+  bachelor: [
+    { label: 'B.A.', value: 'ba' },
+    { label: 'B.Sc.', value: 'bsc' },
+    { label: 'B.Com', value: 'bcom' },
+    { label: 'B.Tech', value: 'btech' }
+  ],
+  master: [
+    { label: 'M.A.', value: 'ma' },
+    { label: 'M.Sc.', value: 'msc' },
+    { label: 'M.Com', value: 'mcom' },
+    { label: 'M.Tech', value: 'mtech' }
+  ],
+  phd: [
+    { label: 'Ph.D. in Science', value: 'phd_sci' },
+    { label: 'Ph.D. in Arts', value: 'phd_arts' }
+  ],
+  other: [
+    { label: 'Other', value: 'other' }
+  ]
+};
  
  
  
-  // Form submission handler
-  const handleSubmit = () => {
-    router.push('/profile/FamilyDetails')
-    console.log('Professionaldetails created:', formData);
-    // Here you would typically send this data to your API
+  // // Form submission handler
+  // const handleSubmit = () => {
+  //   console.log('Professionaldetails created:', formData);
+  //   // Here you would typically send this data to your API
+  // };
+ 
+ 
+  const handleSubmit = async () => {
+    try {
+       const token = await AsyncStorage.getItem('token');
+      const response = await fetch('http://stu.globalknowledgetech.com:5003/user/add-professional-details', {
+        method: 'POST', // Or 'PUT' if you're updating existing details
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization':`Bearer ${token}`
+        },
+        body: JSON.stringify(formData),
+      });
+ 
+      const data = await response.json();
+ 
+      if (response.ok) {
+        console.log('Professional details submitted successfully:', data);
+        // You can show a success message or navigate to another screen
+      } else {
+        console.error('Submission failed:', data);
+        // Show error to user if needed
+      }
+    } catch (error) {
+      console.error('Error submitting data:', error);
+      // Handle network or other unexpected errors
+    }
   };
+ 
  
  
  

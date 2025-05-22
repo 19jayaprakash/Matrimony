@@ -1,6 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { useRouter } from 'expo-router';
 import {
   Activity,
   ChevronsRight,
@@ -114,7 +113,6 @@ const MatrimonialProfile = () => {
 
   const[formData, setFormData] = useState({})
   const[dietPreferences,setDietPreferences] = useState([]);
-  const router = useRouter();
 
 
   // useEffect(()=>{
@@ -162,7 +160,7 @@ const MatrimonialProfile = () => {
     })
     .then(res =>{
       if(res.status === 200){
-        router.push("/profile/PartnerPreference")
+        router.push("/profile/PartnerPreference");
       }
       
     })
