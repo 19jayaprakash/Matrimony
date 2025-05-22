@@ -15,25 +15,25 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
-
+ 
 const LoginScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
   const isMobile = width < 768;
   const router = useRouter();
-
+ 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
-
+ 
   const handleLogin = async () => {
     setEmailError('');
     setPasswordError('');
-
+ 
     let isValid = true;
-
+ 
     if (!email) {
       setEmailError('Email is required');
       isValid = false;
@@ -41,7 +41,7 @@ const LoginScreen = ({ navigation }) => {
       setEmailError('Enter a valid email');
       isValid = false;
     }
-
+ 
     if (!password) {
       setPasswordError('Password is required');
       isValid = false;
@@ -49,18 +49,22 @@ const LoginScreen = ({ navigation }) => {
       setPasswordError('Password must be at least 6 characters');
       isValid = false;
     }
-
+ 
     if (!isValid) return;
-
+ 
     try {
       const response = await axios.post('http://stu.globalknowledgetech.com:5003/auth/login', {
         email,
         password,
       });
-
+ 
       if (response.status === 200) {
         await AsyncStorage.setItem('token', response.data.accessToken);
         await AsyncStorage.setItem('refreshToken', response.data.refreshToken);
+        await AsyncStorage.setItem('email',response.data.email);
+        await AsyncStorage.setItem('firstName', response.data.firstName);
+        await AsyncStorage.setItem('lastName', response.data.lastName);
+        await AsyncStorage.setItem('primaryContact', response.data.primaryContact);
         router.push('/profile/BasicDetails');
       }
     } catch (error) {
@@ -74,11 +78,11 @@ const LoginScreen = ({ navigation }) => {
       }
     }
   };
-
+ 
   const goToRegister = () => {
     router.push('/(auth)/CreateAccount');
   };
-
+ 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FDF2F8' }}>
       <StatusBar barStyle="dark-content" />
@@ -117,7 +121,7 @@ const LoginScreen = ({ navigation }) => {
               Sign in to continue your journey to find love
             </Text>
           </View>
-
+ 
           <View
             style={{
               width: isWeb && !isMobile ? '50%' : '100%',
@@ -155,7 +159,7 @@ const LoginScreen = ({ navigation }) => {
             {emailError ? (
               <Text style={{ color: 'red', marginBottom: 12 }}>{emailError}</Text>
             ) : null}
-
+ 
             <View
               style={{
                 flexDirection: 'row',
@@ -193,11 +197,11 @@ const LoginScreen = ({ navigation }) => {
             {passwordError ? (
               <Text style={{ color: 'red', marginBottom: 12 }}>{passwordError}</Text>
             ) : null}
-
+ 
             <TouchableOpacity style={{ alignSelf: 'flex-end', marginBottom: 24 }}>
               <Text style={{ color: '#DB2777', fontWeight: '500' }}>Forgot Password?</Text>
             </TouchableOpacity>
-
+ 
             <TouchableOpacity
               style={{
                 backgroundColor: '#DB2777',
@@ -215,7 +219,7 @@ const LoginScreen = ({ navigation }) => {
               <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 18 }}>Login</Text>
             </TouchableOpacity>
           </View>
-
+ 
           <View style={{ flexDirection: 'row', marginTop: 16, marginBottom: 20 }}>
             <Text style={{ color: '#6B7280' }}>Don't have an account?</Text>
             <TouchableOpacity onPress={goToRegister} style={{ marginLeft: 4 }}>
@@ -227,5 +231,7 @@ const LoginScreen = ({ navigation }) => {
     </SafeAreaView>
   );
 };
-
+ 
 export default LoginScreen;
+ 
+ 

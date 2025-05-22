@@ -1,0 +1,40 @@
+# node and build output
+node_modules
+android/build
+ios/build
+.expo
+.expo-shared
+*.log
+ 
+# git
+.git
+.gitignore
+ 
+# cache
+*.cache
+npm-debug.log
+yarn-error.log
+package-lock.json
+ 
+# system files
+.DS_Store
+*.tmp
+*.swp
+ 
+# large assets
+assets/videos
+assets/raw
+*.mp4
+*.mov
+*.psd
+*.zip
+*.tar.gz
+*.apk
+*.aab
+ 
+ext_JARS/
+*.jar
+*.zip
+*.tar
+*.7z
+ 
