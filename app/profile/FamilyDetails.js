@@ -157,7 +157,7 @@ if (!formData.ParentsOccupations) {
     console.error('Error:', error);
   }
 
-    router.push('/profile/PartnerPreference')
+    router.push('/profile/UserInterest')
   };
  
 const AddSibilings = () => {

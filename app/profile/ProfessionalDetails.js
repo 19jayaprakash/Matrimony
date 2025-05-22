@@ -1,10 +1,11 @@
 import { Picker } from '@react-native-picker/picker';
+import { useRouter } from 'expo-router';
 import {
   ChevronsRight,
   GraduationCap,
   School
 } from 'lucide-react-native'; // Changed from lucide-react to lucide-react-native
-import React, { useState } from 'react';
+import { useState } from 'react';
 import {
   Platform,
   SafeAreaView,
@@ -15,11 +16,7 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
-import { useRouter } from 'expo-router';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useEffect } from 'react';
  
- // Form Section Component
  const FormSection = ({ title, icon, children }) => (
   <View style={{
     width: '100%',
@@ -81,15 +78,15 @@ const MatrimonialProfile = () => {
   const isWeb = Platform.OS === 'web';
   const isMobile = width < 768;
  
+  const router = useRouter();
   // State for form fields
   const [formData, setFormData] = useState({
     education: '',
-    degree:'',
     college: '',
     employedIn: '',
     occupation:'',
-    employerName:'',
-    annualIncome:''
+    companyname:'',
+    annualincome:''
    
   });
  
@@ -122,15 +119,6 @@ const MatrimonialProfile = () => {
     });
   };
  
-  // const handleChange = (field, value) => {
-  //   setFormData((prev) => ({
-  //     ...prev,
-  //     [field]: value,
-  //     ...(field === 'education' && { degree: '' }) // Reset degree if education changes
-  //   }));
-  // };
- 
- 
 const incomeOptions = [
   'Below ₹1L',
   '₹1L - ₹3L',
@@ -139,72 +127,15 @@ const incomeOptions = [
   '₹15L - ₹30L',
   'Above ₹30L'
 ];
-const degreeOptions = {
-  high_school: [
-    { label: '10th Grade', value: '10th' },
-    { label: '12th Grade', value: '12th' }
-  ],
-  diploma: [
-    { label: 'Engineering Diploma', value: 'eng_diploma' },
-    { label: 'Business Diploma', value: 'biz_diploma' }
-  ],
-  bachelor: [
-    { label: 'B.A.', value: 'ba' },
-    { label: 'B.Sc.', value: 'bsc' },
-    { label: 'B.Com', value: 'bcom' },
-    { label: 'B.Tech', value: 'btech' }
-  ],
-  master: [
-    { label: 'M.A.', value: 'ma' },
-    { label: 'M.Sc.', value: 'msc' },
-    { label: 'M.Com', value: 'mcom' },
-    { label: 'M.Tech', value: 'mtech' }
-  ],
-  phd: [
-    { label: 'Ph.D. in Science', value: 'phd_sci' },
-    { label: 'Ph.D. in Arts', value: 'phd_arts' }
-  ],
-  other: [
-    { label: 'Other', value: 'other' }
-  ]
-};
  
  
  
-  // // Form submission handler
-  // const handleSubmit = () => {
-  //   console.log('Professionaldetails created:', formData);
-  //   // Here you would typically send this data to your API
-  // };
- 
- 
-  const handleSubmit = async () => {
-    try {
-       const token = await AsyncStorage.getItem('token');
-      const response = await fetch('http://stu.globalknowledgetech.com:5003/user/add-professional-details', {
-        method: 'POST', // Or 'PUT' if you're updating existing details
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization':`Bearer ${token}`
-        },
-        body: JSON.stringify(formData),
-      });
- 
-      const data = await response.json();
- 
-      if (response.ok) {
-        console.log('Professional details submitted successfully:', data);
-        // You can show a success message or navigate to another screen
-      } else {
-        console.error('Submission failed:', data);
-        // Show error to user if needed
-      }
-    } catch (error) {
-      console.error('Error submitting data:', error);
-      // Handle network or other unexpected errors
-    }
+  // Form submission handler
+  const handleSubmit = () => {
+    router.push('/profile/FamilyDetails')
+    console.log('Professionaldetails created:', formData);
+    // Here you would typically send this data to your API
   };
- 
  
  
  
@@ -212,23 +143,30 @@ const degreeOptions = {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
       {/* Header */}
-      <View style={{
+       <View style={{
         width: '100%',
         backgroundColor: '#EC4899',
-        paddingVertical: 24,
+        paddingVertical: 10,
         shadowColor: '#000',
         shadowOffset: { width: 0, height: 2 },
         shadowOpacity: 0.2,
         shadowRadius: 4,
         elevation: 3
       }}>
-       
+        <Text style={{
+          color: 'white',
+          fontSize: 20,
+          fontWeight: 'bold',
+          textAlign: 'center'
+        }}>
+          Create Profile
+        </Text>
         <Text style={{
           color: 'white',
           textAlign: 'center',
           marginTop: 6,
           opacity: 0.9,
-          fontSize:18
+          fontSize: 18
         }}>
           Find your perfect match by completing your profile
         </Text>
@@ -243,7 +181,7 @@ const degreeOptions = {
           {/* Profession Details */}
           <FormSection title="Professional Details" icon={<GraduationCap size={24} color="#EC4899" />}>
            
-            {/*  <View style={{ flex: 1, marginRight: isWeb && !isMobile ? 8 : 0 }}>
+              <View style={{ flex: 1, marginRight: isWeb && !isMobile ? 8 : 0 }}>
               <FormField label="Education" icon={<School size={60} color="#6B7280" />}>
               <CustomPicker
               selectedValue={formData.education}
@@ -258,32 +196,7 @@ const degreeOptions = {
               ]}
             />
                 </FormField>
-              </View>*/}
-              <FormField label="Education" icon={<School size={60} color="#6B7280" />}>
-  <CustomPicker
-    selectedValue={formData.education}
-    onValueChange={(itemValue) => handleChange('education', itemValue)}
-    items={[
-      { label: 'High School', value: 'high_school' },
-      { label: 'Diploma', value: 'diploma' },
-      { label: 'Bachelor\'s Degree', value: 'bachelor' },
-      { label: 'Master\'s Degree', value: 'master' },
-      { label: 'Doctorate / PhD', value: 'phd' },
-      { label: 'Other', value: 'other' },
-    ]}
-  />
-</FormField>
- 
-{formData.education !== '' && (
-  <FormField label="Degree" icon={<School size={60} color="#6B7280" />}>
-    <CustomPicker
-      selectedValue={formData.degree}
-      onValueChange={(itemValue) => handleChange('degree', itemValue)}
-      items={degreeOptions[formData.education] || []}
-    />
-  </FormField>
-)}
- 
+              </View>
               <View style={{ flex: 1, marginLeft: isWeb && !isMobile ? 8 : 0 }}>
                 <FormField label="College">
                   <CustomInput
@@ -303,7 +216,7 @@ const degreeOptions = {
                 //   color: '#111827' // Tailwind's text-gray-900
                 // }}
                 items={[
-                  { label: 'Private Sector', value: 'Private Sector' },
+                  { label: 'Private', value: 'private' },
                   { label: 'Government', value: 'government' },
                   { label: 'Self-employed', value: 'self-employed' }
                 ]}
@@ -330,19 +243,19 @@ const degreeOptions = {
             </FormField>
             <FormField label="Company Name">
             <CustomInput
-              value={formData.employerName}
-              onChangeText={(text) => handleChange('employerName', text)}
+              value={formData.companyname}
+              onChangeText={(text) => handleChange('companyname', text)}
                placeholder="e.g. Infosys"
             />
           </FormField>
         <FormField label="Annual Income">
   <View style={{ flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between' }}>
     {incomeOptions.map((option) => {
-      const isSelected = formData.annualIncome === option;
+      const isSelected = formData.annualincome === option;
       return (
         <TouchableOpacity
           key={option}
-          onPress={() => handleChange('annualIncome', option)}
+          onPress={() => handleChange('annualincome', option)}
           style={{
             width: '32%', // ensures 3 per row with spacing
             paddingVertical: 10,
@@ -401,3 +314,5 @@ const degreeOptions = {
 };
  
 export default MatrimonialProfile;
+ 
+ 

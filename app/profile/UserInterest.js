@@ -1,4 +1,6 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { useRouter } from 'expo-router';
 import {
   Activity,
   ChevronsRight,
@@ -22,9 +24,6 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
-import {useRouter} from 'expo-router';
-import { useEffect } from 'react';
-import AsyncStorage from '@react-native-async-storage/async-storage';
 
 
 
