@@ -280,6 +280,7 @@ const handleSubmit = async () => {
       ...formData,
       height: formData.height ? parseInt(formData.height, 10) : null,
       weight: formData.weight ? parseInt(formData.weight, 10) : null,
+      isBasicProfileSubmitted:true
     };
  
     console.log('Submitting profile:', submissionData);

@@ -479,7 +479,7 @@ const handleSubmit = async () => {
           >
             <View style={styles.imageContainer}>
               <Image
-                source={require("../../assets/images/img.png")}
+                source={require("../../assets/images/wedding.jpg")}
                 style={styles.image}
                 resizeMode="cover"
               />

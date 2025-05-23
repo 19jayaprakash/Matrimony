@@ -23,7 +23,8 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
-
+ 
+import { router } from 'expo-router';
 
 
 
@@ -159,9 +160,9 @@ const MatrimonialProfile = () => {
       }
     })
     .then(res =>{
-      if(res.status === 200){
+      
         router.push("/profile/PartnerPreference");
-      }
+      
       
     })
     .catch(err =>{

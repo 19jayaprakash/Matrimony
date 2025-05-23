@@ -65,7 +65,14 @@ const LoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem('firstName', response.data.firstName);
         await AsyncStorage.setItem('lastName', response.data.lastName);
         await AsyncStorage.setItem('primaryContact', response.data.primaryContact);
-        router.push('/profile/BasicDetails');
+        if(response.data.isBasicProfileSubmitted == true){
+                  router.push('../navigation/MainTabs');
+
+        }
+        else{
+                  router.push('/profile/BasicDetails');
+
+        }
       }
     } catch (error) {
       const msg = error.response?.data?.message || 'Login failed';

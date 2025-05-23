@@ -2,6 +2,7 @@ import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 
+import ChatScreen from '../screens/AiAssistant';
 import HomeScreen from '../screens/HomeScreen';
 import MatchesScreen from '../screens/MatchesScreen';
 import ProfileScreen from '../screens/ProfileScreen';
@@ -24,9 +25,13 @@ export default function MainTabs() {
             case 'Matches':
               iconName = focused ? 'heart' : 'heart-outline';
               break;
+               case 'Chat':
+              iconName = focused ? 'chatbubble-ellipses' : 'chatbubble-ellipses-outline';
+              break;
             case 'Profile':
               iconName = focused ? 'person' : 'person-outline';
               break;
+           
             default:
               iconName = 'home-outline';
           }
@@ -91,12 +96,20 @@ export default function MainTabs() {
         }}
       />
       <Tab.Screen 
+        name="Chat" 
+        component={ChatScreen}
+        options={{
+          tabBarBadge: undefined,
+        }}
+      />
+      <Tab.Screen 
         name="Profile" 
         component={ProfileScreen}
         options={{
           tabBarBadge: undefined,
         }}
       />
+      
     </Tab.Navigator>
   );
 }
