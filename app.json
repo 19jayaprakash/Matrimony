@@ -4,7 +4,7 @@
     "slug": "VivaahAI",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/home_splash.png",
     "scheme": "matrimony",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
@@ -22,7 +22,7 @@
     "web": {
       "bundler": "metro",
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/home_splash.png"
     },
     "plugins": [
       "expo-router",
@@ -34,7 +34,15 @@
           "resizeMode": "contain",
           "backgroundColor": "#ffffff"
         }
+      ],
+      [
+         "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-2761403122222548~9226987823",
+           "iosAppId": "ca-app-pub-xxxxxxxx~xxxxxxxx"
+        }
       ]
+     
     ],
     "experiments": {
       "typedRoutes": true
