@@ -1,6 +1,7 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
-import { router } from 'expo-router';
+import { router,useLocalSearchParams } from 'expo-router'; 
+import { axiosPublic } from '../api/constant';
 import {
   Activity,
   ChevronsRight,
@@ -121,18 +122,25 @@ const MatrimonialProfile = () => {
   const[habits,setHabits] = useState([]);
   const[cuisinePreference,setCuisinePreference] = useState([]);
   const[knownLanguages,setKnownLanguages] = useState([]);
+   const params = useLocalSearchParams();
+
+    useEffect(() => {
+    if (params && Object.keys(params).length > 0) {
+      setIsUpdate(true);
+    }
+  }, [params]);
 
   useEffect(()=>{
     async function fetchDietPreferences() {
-      await fetch(`http://stu.globalknowledgetech.com:5003/Interests/user-interests`,{
-        method: 'GET',
+
+      await axiosPublic.get(`/Interests/user-interests`,{
         headers: {
           'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
         },
       })
-      .then((response) => response.json())
-      .then((data) => {
-        // setDietPreferences(data);
+      .then((resp) => {
+        if(resp.status === 200){
+        const data = resp.data;
         setSelectedCause(data.socialCausesOfInterest || []);
         setSelectedCuisines(data.cuisinePreferences || []);
         setSelectedDiets(data.dietPreferences || []);
@@ -143,27 +151,26 @@ const MatrimonialProfile = () => {
         setSelectedTravel(data.travelPreferences || []);
         setSelectedHabits(data.habits || []);
         setIsUpdate(true);
-        console.log('Diet Preferences:', data);
+        }
       })
       .catch((error) => {
-        console.error('Error fetching diet preferences:', error);
+        console.error('Error fetching user Interests:', error);
       });
     }
+    
     fetchDietPreferences();
   },[]);
  
  
   useEffect(()=>{
     async function fetchDietPreferences() {
-      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=diet_preferences`,{
-        method: 'GET',
+      await axiosPublic.get(`/utility/utilHead?utilHead=diet_preferences`,{
         headers: {
-          'access-control-allow-origin': '*',
+          'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
         },
       })
-      .then((response) => response.json())
-      .then((data) => {
-        setDietPreference(data.data);
+      .then((res) => {
+        setDietPreference(res.data.data);
       })
       .catch((error) => {
         console.error('Error fetching diet preferences:', error);
@@ -175,18 +182,16 @@ const MatrimonialProfile = () => {
 
   useEffect(()=>{
     async function fetchHobbies() {
-      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=hobby`,{
-        method: 'GET',
+      await axiosPublic.get(`utility/utilHead?utilHead=hobby`,{
         headers: {
-          'access-control-allow-origin': '*',
+          'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
         },
       })
-      .then((response) => response.json())
-      .then((data) => {
-        setHobbies(data.data);
+      .then((res) => {
+        setHobbies(res.data.data);
       })
       .catch((error) => {
-        console.error('Error fetching diet preferences:', error);
+        console.error('Error fetching hobbies:', error);
       });
     }
     fetchHobbies();
@@ -195,18 +200,16 @@ const MatrimonialProfile = () => {
 
   useEffect(()=>{
     async function fetchSocialCauses() {
-      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=social_cause`,{
-        method: 'GET',
+      await axiosPublic.get(`/utility/utilHead?utilHead=social_cause`,{
         headers: {
-          'access-control-allow-origin': '*',
+          'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
         },
       })
-      .then((response) => response.json())
-      .then((data) => {
-        setSocialCauses(data.data);
+      .then((res) => {
+        setSocialCauses(res.data.data);
       })
       .catch((error) => {
-        console.error('Error fetching diet preferences:', error);
+        console.error('Error fetching social causes:', error);
       });
     }
     fetchSocialCauses();
@@ -214,18 +217,16 @@ const MatrimonialProfile = () => {
   },[]);
   useEffect(()=>{
     async function fetchTravelPreferences() {
-      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=travel_preference`,{
-        method: 'GET',
+      await axiosPublic.get(`/utility/utilHead?utilHead=travel_preference`,{
         headers: {
-          'access-control-allow-origin': '*',
+          'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
         },
       })
-      .then((response) => response.json())
-      .then((data) => {
-        setTravelPreferences(data.data);
+      .then((res) => {
+        setTravelPreferences(res.data.data);
       })
       .catch((error) => {
-        console.error('Error fetching diet preferences:', error);
+        console.error('Error fetching travel preferences:', error);
       });
     }
     fetchTravelPreferences();
@@ -233,18 +234,16 @@ const MatrimonialProfile = () => {
   },[]);
   useEffect(()=>{
     async function fetchMusicMoviesTastes() {
-      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=music_movie_taste`,{
-        method: 'GET',
+      await axiosPublic.get(`/utility/utilHead?utilHead=music_movie_taste`,{
         headers: {
-          'access-control-allow-origin': '*',
+          'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
         },
       })
-      .then((response) => response.json())
-      .then((data) => {
-        setMusicMovieTastes(data.data);
+      .then((res) => {
+        setMusicMovieTastes(res.data.data);
       })
       .catch((error) => {
-        console.error('Error fetching diet preferences:', error);
+        console.error('Error fetching Music movie tastes:', error);
       });
     }
     fetchMusicMoviesTastes();
@@ -252,18 +251,16 @@ const MatrimonialProfile = () => {
   },[]);
   useEffect(()=>{
     async function fetchFitnessActivities() {
-      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=games_play`,{
-        method: 'GET',
+      await axiosPublic.get(`/utility/utilHead?utilHead=games_play`,{
         headers: {
-          'access-control-allow-origin': '*',
+          'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
         },
       })
-      .then((response) => response.json())
-      .then((data) => {
-        setFitnessActivities(data.data);
+      .then((res) => {
+        setFitnessActivities(res.data.data);
       })
       .catch((error) => {
-        console.error('Error fetching diet preferences:', error);
+        console.error('Error fetching Fitness activities:', error);
       });
     }
     fetchFitnessActivities();
@@ -271,18 +268,16 @@ const MatrimonialProfile = () => {
   },[]);
   useEffect(()=>{
     async function fetchDietPreferences() {
-      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=habits`,{
-        method: 'GET',
+      await axiosPublic.get(`/utility/utilHead?utilHead=habits`,{
         headers: {
-          'access-control-allow-origin': '*',
+          'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
         },
       })
-      .then((response) => response.json())
-      .then((data) => {
-        setHabits(data.data);
+      .then((res) => {
+        setHabits(res.data.data);
       })
       .catch((error) => {
-        console.error('Error fetching diet preferences:', error);
+        console.error('Error fetching habits:', error);
       });
     }
     fetchDietPreferences();
@@ -290,18 +285,16 @@ const MatrimonialProfile = () => {
   },[]);
   useEffect(()=>{
     async function fetchDietPreferences() {
-      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=cuisine_preference`,{
-        method: 'GET',
+      await axiosPublic.get(`/utility/utilHead?utilHead=cuisine_preference`,{
         headers: {
-          'access-control-allow-origin': '*',
+          'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
         },
       })
-      .then((response) => response.json())
-      .then((data) => {
-        setCuisinePreference(data.data);
+      .then((res) => {
+        setCuisinePreference(res.data.data);
       })
       .catch((error) => {
-        console.error('Error fetching diet preferences:', error);
+        console.error('Error fetching cuisine preferences:', error);
       });
     }
     fetchDietPreferences();
@@ -309,18 +302,16 @@ const MatrimonialProfile = () => {
   },[]);
   useEffect(()=>{
     async function fetchDietPreferences() {
-      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=language`,{
-        method: 'GET',
+      await axiosPublic.get(`/utility/utilHead?utilHead=language`,{
         headers: {
-          'access-control-allow-origin': '*',
+          'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
         },
       })
-      .then((response) => response.json())
-      .then((data) => {
-        setKnownLanguages(data.data);
+      .then((res) => {
+        setKnownLanguages(res.data.data);
       })
       .catch((error) => {
-        console.error('Error fetching diet preferences:', error);
+        console.error('Error fetching language preferences:', error);
       });
     }
     fetchDietPreferences();
@@ -344,9 +335,8 @@ const MatrimonialProfile = () => {
   "dietPreferences": selectedDiets,
 })
     console.log('Form Data:', json);
-    await axios.post(`http://stu.globalknowledgetech.com:5003/Interests/user-interests`, json,{
+    await axiosPublic.post(`/Interests/user-interests`, json,{
       headers : {
-        'Content-Type': 'application/json',
         "Authorization" : `Bearer ${token}`,
       }
     })
@@ -374,7 +364,7 @@ const MatrimonialProfile = () => {
   "dietPreferences": selectedDiets,
 })
     console.log('Form Data:', json);
-    await axios.post(`http://stu.globalknowledgetech.com:5003/Interests/update-user-interests`, json,{
+    await axiosPublic.post(`/Interests/update-user-interests`, json,{
       headers : {
         'Content-Type': 'application/json',
         "Authorization" : `Bearer ${token}`,

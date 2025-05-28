@@ -1,5 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useRouter } from 'expo-router';
+import { router } from 'expo-router';
 import { Eye, EyeOff, Lock, Mail } from 'lucide-react-native';
 import { useState } from 'react';
 import {
@@ -20,7 +20,6 @@ const LoginScreen = ({ navigation }) => {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
   const isMobile = width < 768;
-  const router = useRouter();
 
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -68,6 +67,7 @@ const LoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem('lastName', response.data.lastName);
         await AsyncStorage.setItem('primaryContact', response.data.primaryContact);
         if (response.data.isBasicProfileSubmitted == true) {
+        
           router.push('../navigation/MainTabs');
         } else {
           router.push('/profile/BasicDetails');
