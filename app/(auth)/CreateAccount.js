@@ -16,6 +16,7 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { axiosPublic } from "../api/constant";
 
 const scrollToField = (scrollViewRef, fieldKey) => {
   const fieldIndexMap = {
@@ -413,8 +414,8 @@ const handleSubmit = async () => {
 
       }
   try {
-    const res = await axios.post(
-      "http://stu.globalknowledgetech.com:5003/auth/register",
+    const res = await axiosPublic.post(
+      "/auth/register",
       payloadData
     );
 

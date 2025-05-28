@@ -27,11 +27,13 @@ import {
 } from 'react-native';
 import { RadioButton } from 'react-native-paper';
 import { axiosPublic } from '../api/constant';
+import axios from 'axios';
 
 const MatrimonialProfile = () => {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
   const isMobile = width < 768;
+  const params = useLocalSearchParams();
 
   const [formData, setFormData] = useState({
     firstName: '',
@@ -62,6 +64,11 @@ const MatrimonialProfile = () => {
     zodiacSign: '',
     starSign: '',
   });
+  useEffect(() => {
+    if (params && Object.keys(params).length > 0) {
+      setIsEditMode(true);
+    }
+  }, [params]);
 
 
   const [motherTongueOptions, setMotherTongueOptions] = useState([]);
@@ -69,9 +76,8 @@ const MatrimonialProfile = () => {
   useEffect(() => {
     async function fetchMotherTongue() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=mother_tongue');
-        const result = await response.json();
-        console.log('Mother tongue response:', result);
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=mother_tongue');
+        const result = response.data;
 
         // Handle the response structure with "data" property
         if (result && Array.isArray(result.data)) {
@@ -92,9 +98,8 @@ const MatrimonialProfile = () => {
   useEffect(() => {
     async function fetchDietOption() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=diet_preferences');
-        const result = await response.json();
-        console.log('Diet Preference data:', result);
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=diet_preferences');
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           setDietOptions(result.data);
@@ -115,9 +120,8 @@ const MatrimonialProfile = () => {
   useEffect(() => {
     async function fetchsmokingOption() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=smoking_habits');
-        const result = await response.json();
-        console.log('smoking Preference data:', result);
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=smoking_habits');
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           setsmokingOptions(result.data);
@@ -136,9 +140,8 @@ const MatrimonialProfile = () => {
   useEffect(() => {
     async function fetchdrinkingOption() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=drinking_habits');
-        const result = await response.json();
-        console.log('drinking Preference data:', result);
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=drinking_habits');
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           setdrinkingOptions(result.data);
@@ -157,9 +160,8 @@ const MatrimonialProfile = () => {
   useEffect(() => {
     async function fetchreligionOption() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=religion');
-        const result = await response.json();
-        console.log('religion data:', result);
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=religion');
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           setreligionOptions(result.data);
@@ -182,9 +184,8 @@ const MatrimonialProfile = () => {
   useEffect(() => {
     async function fetchCastes() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=caste');
-        const result = await response.json();
-        console.log('caste data:', result)
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=caste');
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           setCasteOptions(result.data);
@@ -207,9 +208,8 @@ const MatrimonialProfile = () => {
       }
 
       try {
-        const response = await fetch(`http://stu.globalknowledgetech.com:5003/utility/parent?parentCode=${formData.caste}`);
-        const result = await response.json();
-        console.log('subcaste data:', result)
+        const response = await axiosPublic.get(`/utility/parent?parentCode=${formData.caste}`);
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           setSubcasteOptions(result.data);
@@ -235,9 +235,8 @@ const MatrimonialProfile = () => {
   useEffect(() => {
     async function fetchzodiac() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=zodiac_sign');
-        const result = await response.json();
-        console.log('zodiac data:', result)
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=zodiac_sign');
+        const result =  response.data;
 
         if (result && Array.isArray(result.data)) {
           setzodiacOptions(result.data);
@@ -260,9 +259,8 @@ const MatrimonialProfile = () => {
       }
 
       try {
-        const response = await fetch(`http://stu.globalknowledgetech.com:5003/utility/parent?parentCode=${formData.zodiacSign}`);
-        const result = await response.json();
-        console.log('star data:', result)
+        const response = await axiosPublic.get(`/utility/parent?parentCode=${formData.zodiacSign}`);
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           setstarOptions(result.data);
@@ -285,15 +283,15 @@ useEffect(() => {
      
       const token = await AsyncStorage.getItem('token');
      
-      const response = await fetch('http://stu.globalknowledgetech.com:5003/user/user-profile', {
-        method: 'GET',
+      const response = await axiosPublic.get('/user/user-profile', {
+        
         headers: {
           'Authorization': `Bearer ${token}`,
           'Content-Type': 'application/json',
         },
       });
      
-      const result = await response.json();
+      const result =response.data;
       console.log('user data:', result);
      
       if (result) {
@@ -352,9 +350,8 @@ useEffect(() => {
     useEffect(() => {
       async function fetchstate() {
         try {
-          const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=state');
-          const result = await response.json();
-          console.log('state data:', result)
+          const response = await axiosPublic.get('/utility/utilHead?utilHead=state');
+          const result = response.data;
   
           if (result && Array.isArray(result.data)) {
             setstateOptions(result.data);
@@ -379,9 +376,8 @@ useEffect(() => {
           // Replace spaces with underscores when sending to API
           const stateValue = formData.state.replace(/\s+/g, '_');
           
-          const response = await fetch(`http://stu.globalknowledgetech.com:5003/utility/parent?parentCode=${stateValue}`);
-          const result = await response.json();
-          console.log('city data:', result)
+          const response = await axiosPublic.get(`/utility/parent?parentCode=${stateValue}`);
+          const result = response.data;
           
           if (result && Array.isArray(result.data)) {
             setcityOptions(result.data);
@@ -459,20 +455,15 @@ useEffect(() => {
     });
   };
 
-useEffect(()=>{
-          const params = useLocalSearchParams();
-          setIsEditMode(true);
 
-},[params]);
     
 
   const [martialoptions, setmartialOptions] = useState([]);
   useEffect(() => {
     async function fetchmaritalOption() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=marital_status');
-        const result = await response.json();
-        console.log('martial data:', result);
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=marital_status');
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           setmartialOptions(result.data);
@@ -491,9 +482,8 @@ useEffect(()=>{
   useEffect(() => {
     async function fetchbodytypeOption() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=body_type');
-        const result = await response.json();
-        console.log('body type data:', result);
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=body_type');
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           setbodytypeOptions(result.data);
@@ -511,9 +501,8 @@ useEffect(()=>{
   useEffect(() => {
     async function fetchhavechildrenoption() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=children');
-        const result = await response.json();
-        console.log('Have children data:', result);
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=children');
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           sethavechildrenOptions(result.data);
@@ -532,8 +521,8 @@ useEffect(()=>{
   useEffect(() => {
     async function fetchwantchildrenoption() {
       try {
-        const response = await fetch('http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=want_children');
-        const result = await response.json();
+        const response = await axiosPublic.get('/utility/utilHead?utilHead=want_children');
+        const result = response.data;
 
         if (result && Array.isArray(result.data)) {
           setwantchildrenOptions(result.data);
@@ -547,10 +536,8 @@ useEffect(()=>{
   }, []);
 
 
-  const handleSubmit = async () => {
+   const handleSubmit = async () => {
     try {
-
-      
       // Create a copy of formData with height and weight converted to integers
       const submissionData = {
         ...formData,
@@ -558,51 +545,50 @@ useEffect(()=>{
         weight: formData.weight ? parseInt(formData.weight, 10) : null,
         isBasicProfileSubmitted: true,
       };
-
-      console.log('Submitting profile:', submissionData);
-
+  
+     
+  
       const authToken = await AsyncStorage.getItem('token');
-            // const authToken1 = localStorage.getItem('token');
-
+  
       if (!authToken) {
         console.error('Auth token not found');
         setToastMessage('Authentication error. Please login again.');
         setShowToast(true);
-
+  
         setTimeout(() => {
           setShowToast(false);
         }, 3000);
         return;
       }
-      const response = await axiosPublic.post('/user/add-Profile', {
+  
+      // FIXED: Use proper axios POST method with headers
+      const response = await axiosPublic.post('/user/add-Profile', submissionData, {
         headers: {
-          'Authorization': `Bearer ${authToken}`
-        },
-        body: JSON.stringify(submissionData),
+          'Authorization': `Bearer ${authToken}`,
+          'Content-Type': 'application/json',
+        }
       });
-
+  
       if (response.status === 200) {
-
         setToastMessage('Basic profile details have been added successfully!');
         setShowToast(true);
         clearForm();
+        
         // Hide toast after 3 seconds
         setTimeout(() => {
           setShowToast(false);
         }, 1000);
-
-        if(!isEditMode){
-        router.push("/profile/ProfessionalDetails");
+  
+        if (!isEditMode) {
+          router.push("/profile/ProfessionalDetails");
+        } else {
+          router.push('/navigation/MainTabs');
         }
-        else{
-          router.push('/navigation/MainTabs')
-        }
-
       } else {
         console.error('Failed to create profile:', response.status);
         setToastMessage('Failed to add profile. Please try again.');
         setShowToast(true);
-
+  
         // Hide toast after 3 seconds
         setTimeout(() => {
           setShowToast(false);
@@ -612,7 +598,7 @@ useEffect(()=>{
       console.error('Error submitting profile:', error);
       setToastMessage('Network error. Please try again.');
       setShowToast(true);
-
+  
       // Hide toast after 3 seconds
       setTimeout(() => {
         setShowToast(false);
