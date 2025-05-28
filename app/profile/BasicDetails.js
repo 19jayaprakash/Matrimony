@@ -26,6 +26,7 @@ import {
   View
 } from 'react-native';
 import { RadioButton } from 'react-native-paper';
+import { axiosPublic } from '../api/constant';
 
 const MatrimonialProfile = () => {
   const { width } = useWindowDimensions();
@@ -573,11 +574,8 @@ useEffect(()=>{
         }, 3000);
         return;
       }
-
-      const response = await fetch('http://stu.globalknowledgetech.com:5003/user/add-Profile', {
-        method: 'POST',
+      const response = await axiosPublic.post('/user/add-Profile', {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${authToken}`
         },
         body: JSON.stringify(submissionData),
@@ -597,7 +595,7 @@ useEffect(()=>{
         router.push("/profile/ProfessionalDetails");
         }
         else{
-          souter.push('/navigation/MainTabs')
+          router.push('/navigation/MainTabs')
         }
 
       } else {
