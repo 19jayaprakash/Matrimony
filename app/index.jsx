@@ -14,7 +14,6 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
-import { BannerAd, BannerAdSize, TestIds } from 'react-native-google-mobile-ads';
 import { axiosPublic } from './api/constant';
 
 const LoginScreen = ({ navigation }) => {
@@ -29,7 +28,7 @@ const LoginScreen = ({ navigation }) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  const adUnitId = __DEV__ ? TestIds.BANNER : 'ca-app-pub-2761403122222548~9226987823';
+  // const adUnitId = __DEV__ ? TestIds.BANNER : 'ca-app-pub-2761403122222548~9226987823';
 
   const handleLogin = async () => {
     setEmailError('');
@@ -56,7 +55,7 @@ const LoginScreen = ({ navigation }) => {
     if (!isValid) return;
 
     try {
-      const response = await axiosPublic.post('http://stu.globalknowledgetech.com:5003/auth/login', {
+      const response = await axiosPublic.post('/auth/login', {
         email,
         password,
       });
@@ -100,7 +99,7 @@ const LoginScreen = ({ navigation }) => {
           backgroundColor: '#FDF2F8',
           paddingVertical: 8
         }}>
-          <BannerAd
+          {/* <BannerAd
             unitId={adUnitId}
             size={BannerAdSize.BANNER}
             requestOptions={{
@@ -112,7 +111,7 @@ const LoginScreen = ({ navigation }) => {
             onAdFailedToLoad={(error) => {
               console.error('Banner ad failed to load:', error);
             }}
-          />
+          /> */}
         </View>
       )}
 
@@ -259,8 +258,7 @@ const LoginScreen = ({ navigation }) => {
         </View>
       </KeyboardAvoidingView>
 
-      {/* Bottom Banner Ad */}
-      {!isWeb && (
+      {/* {!isWeb && (
         <View style={{ 
           alignItems: 'center', 
           backgroundColor: '#FDF2F8',
@@ -282,7 +280,7 @@ const LoginScreen = ({ navigation }) => {
             }}
           />
         </View>
-      )}
+      )} */}
     </SafeAreaView>
   );
 };

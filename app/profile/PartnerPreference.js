@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState } from "react";
 import {
   Alert,
   Animated,
@@ -13,262 +13,335 @@ import {
   Text,
   TextInput,
   TouchableOpacity,
-  View
-} from 'react-native';
+  View,
+} from "react-native";
 
-// Fixed imports - make sure these packages are installed
-import { Ionicons } from '@expo/vector-icons';
-import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import { useRouter } from 'expo-router';
+import { Ionicons } from "@expo/vector-icons";
+import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
+import { useLocalSearchParams, useRouter } from "expo-router";
+import { useEffect } from "react";
+import { axiosPublic } from "../api/constant";
 
-const AGE_OPTIONS = Array.from({ length: 43 }, (_, i) => (i + 18).toString());
+const SEX_OPTIONS = ["Male", "Female", "Others"];
 
-const HEIGHT_OPTIONS_CM = Array.from({ length: 61 }, (_, i) => `${i + 140} cm`);
-
-const HEIGHT_OPTIONS_FT = [];
-for (let feet = 4; feet <= 7; feet++) {
-  for (let inches = 0; inches <= 11; inches++) {
-    if (feet === 7 && inches > 0) break;
-    HEIGHT_OPTIONS_FT.push(`${feet}'${inches}"`);
-  }
-}
-
-const WEIGHT_OPTIONS = Array.from({ length: 81 }, (_, i) => `${i + 40} kg`);
-
-const INDIAN_STATES = [
-  "Andhra Pradesh", "Arunachal Pradesh", "Assam", "Bihar", "Chhattisgarh", "Goa", "Gujarat", 
-  "Haryana", "Himachal Pradesh", "Jharkhand", "Karnataka", "Kerala", "Madhya Pradesh", 
-  "Maharashtra", "Manipur", "Meghalaya", "Mizoram", "Nagaland", "Odisha", "Punjab", 
-  "Rajasthan", "Sikkim", "Tamil Nadu", "Telangana", "Tripura", "Uttar Pradesh", 
-  "Uttarakhand", "West Bengal"
-];
-
-const CITIES_BY_STATE = {
-  "Maharashtra": ["Mumbai", "Pune", "Nagpur", "Thane", "Nashik", "Aurangabad"],
-  "Tamil Nadu": ["Chennai", "Coimbatore", "Madurai", "Tiruchirappalli", "Salem", "Tirunelveli"],
-  "Karnataka": ["Bengaluru", "Mysuru", "Hubli", "Mangaluru", "Belgaum", "Gulbarga"],
-  "Andhra Pradesh": ["Visakhapatnam", "Vijayawada", "Guntur", "Nellore", "Kurnool"],
-  "Gujarat": ["Ahmedabad", "Surat", "Vadodara", "Rajkot", "Gandhinagar"],
-  "Delhi": ["New Delhi", "North Delhi", "South Delhi", "East Delhi", "West Delhi"],
-  "Uttar Pradesh": ["Lucknow", "Kanpur", "Agra", "Varanasi", "Prayagraj", "Noida"],
-};
-
-const RELIGIONS = [
-  "Hinduism", "Islam", "Christianity", "Sikhism", "Buddhism", "Jainism", "Zoroastrianism"
-];
-
-const CASTES = {
-  "Hinduism": ["Brahmin", "Kshatriya", "Vaishya", "Shudra"],
-  "Islam": ["Sunni", "Shia"],
-  "Christianity": ["Catholic", "Protestant", "Orthodox"],
-  "Sikhism": ["Jatt", "Khatri", "Ramgarhia"],
-};
-
-const EDUCATION_LEVELS = [
-  "10th", "12th", "Diploma", "Undergraduate (UG)", "Postgraduate (PG)", "PhD"
-];
-
-const OCCUPATION_TYPES = [
-  "Self Employed", "Salaried", "Business", "Government"
-];
-
-const LIFESTYLE_TYPES = [
-  "Modern", "Ethnic", "Traditional"
-];
-
-const SEX_OPTIONS = [
-  "Male", "Female", "Others"
-];
+const LIFESTYLE_TYPES = ["Modern", "Ethnic", "Traditional"];
 
 const ftToCm = (ftString) => {
   if (!ftString) return null;
-  
+
   const feetMatch = ftString.match(/(\d+)'/);
   const inchesMatch = ftString.match(/'(\d+)"/);
-  
+
   if (!feetMatch) return null;
-  
+
   const feet = parseInt(feetMatch[1]);
   const inches = inchesMatch ? parseInt(inchesMatch[1]) : 0;
-  
+
   return Math.round(feet * 30.48 + inches * 2.54);
 };
 
 const cmToFt = (cm) => {
-  if (!cm) return null;
-  
+  if (!cm || isNaN(cm)) return ''; // return empty string if invalid
+
   const totalInches = cm / 2.54;
   const feet = Math.floor(totalInches / 12);
   const inches = Math.round(totalInches % 12);
-  
+
+  if (isNaN(feet) || isNaN(inches)) return ''; // extra guard
+
   if (inches === 12) {
     return `${feet + 1}'0"`;
   }
-  
+
   return `${feet}'${inches}"`;
 };
 
+
 const MatrimonialProfile = () => {
+  const [apiData, setApiData] = useState({
+    age: [],
+    height_cm: [],
+    height_ft_in: [],
+    weight: [],
+    state: [],
+    city: {},
+    religion: [],
+    caste: {},
+    education_level: [],
+    occupation: [],
+    lifestyle: [],
+  });
+
+  const [dataLoaded, setDataLoaded] = useState(false);
 
   const [preferences, setPreferences] = useState({
-    ageRange: { min: '', max: '' },
-    heightRange: { min: '', max: '', unit: 'cm' }, 
-    weight: { min: '', max: '' },
-    sex: '',
-    otherSex: '',
-    educationLevel: '',
-    occupationType: '',
-    location: { state: '', city: '' },
-    religion: '',
-    caste: '',
-    lifestyle: ''
+    ageRange: { min: "", max: "" },
+    heightRange: { min: "", max: "", unit: "cm" },
+    weight: { min: "", max: "" },
+    sex: "",
+    otherSex: "",
+    educationLevel: "",
+    occupationType: "",
+    location: { state: "", city: "" },
+    religion: "",
+    caste: "",
+    lifestyle: "",
   });
-  
-  // Enhanced error state with individual field errors
+
   const [errors, setErrors] = useState({
-    ageRange: '',
-    heightRange: '',
-    weight: '',
-    sex: '',
-    otherSex: '',
-    educationLevel: '',
-    occupationType: '',
-    state: '',
-    city: '',
-    religion: '',
-    caste: '',
-    lifestyle: ''
+    ageRange: "",
+    heightRange: "",
+    weight: "",
+    sex: "",
+    otherSex: "",
+    educationLevel: "",
+    occupationType: "",
+    state: "",
+    city: "",
+    religion: "",
+    caste: "",
+    lifestyle: "",
   });
-  
-  const [minMaxType, setMinMaxType] = useState('');
+  const [isEditMode, setIsEditMode] = useState(false);
+
+  const [minMaxType, setMinMaxType] = useState("");
   const [popupVisible, setPopupVisible] = useState(false);
-  const [activeDropdown, setActiveDropdown] = useState('');
+  const [activeDropdown, setActiveDropdown] = useState("");
   const [dropdownItems, setDropdownItems] = useState([]);
-  const [dropdownTitle, setDropdownTitle] = useState('');
+  const [dropdownTitle, setDropdownTitle] = useState("");
 
   const fadeAnim = useRef(new Animated.Value(0)).current;
   const scaleAnim = useRef(new Animated.Value(0.9)).current;
 
   const router = useRouter();
+  const params = useLocalSearchParams();
 
-  // Validate individual fields
+  const generateWeightOptions = () => {
+    return Array.from({ length: 81 }, (_, i) => `${i + 40} kg`);
+  };
+
+  useEffect(() => {
+    const fetchPartnerPreference = async () => {
+      try {
+        const authToken = await AsyncStorage.getItem("token");
+        const response = await axiosPublic.get(
+          "http://stu.globalknowledgetech.com:5003/partnerpreference/get-utility-partner-preference-data",
+          {
+            headers: {
+              Authorization: `Bearer ${authToken}`,
+            },
+          }
+        );
+
+        console.log("Fetched data:", response.data);
+
+        if (response.data && response.data.data) {
+          const fetchedData = response.data.data;
+          setApiData({
+            age: fetchedData.age || [],
+            height_cm: fetchedData.height_cm || [],
+            height_ft_in: fetchedData.height_ft_in || [],
+            weight: generateWeightOptions(),
+            state: fetchedData.state || [],
+            city: fetchedData.city || {},
+            religion: fetchedData.religion || [],
+            caste: fetchedData.caste || {},
+            education_level: fetchedData.education_level || [],
+            occupation: fetchedData.occupation || [],
+            lifestyle: fetchedData.lifestyle || [],
+          });
+          setDataLoaded(true);
+        }
+      } catch (err) {
+        console.error("Fetch error:", err);
+        Alert.alert("Error", "Failed to load data. Please try again.");
+        setApiData({
+          age: generateAgeOptions(),
+          height_cm: generateHeightOptionsCm(),
+          height_ft_in: generateHeightOptionsFt(),
+          weight: generateWeightOptions(),
+          state: [],
+          city: {},
+          religion: [],
+          caste: {},
+          education_level: [],
+          occupation: [],
+        });
+        setDataLoaded(true);
+      }
+    };
+
+    fetchPartnerPreference();
+  }, []);
+
+  const generateAgeOptions = () => {
+    return Array.from({ length: 43 }, (_, i) => `${i + 18} years`);
+  };
+
+  const generateHeightOptionsCm = () => {
+    return Array.from({ length: 61 }, (_, i) => `${i + 140} cm`);
+  };
+
+  const generateHeightOptionsFt = () => {
+    const options = [];
+    for (let feet = 4; feet <= 7; feet++) {
+      for (let inches = 0; inches <= 11; inches++) {
+        if (feet === 7 && inches > 0) break;
+        options.push(`${feet}'${inches}"`);
+      }
+    }
+    return options;
+  };
+
+  const getAgeValue = (ageString) => {
+    return parseInt(ageString.replace(" years", ""));
+  };
+
+  const getHeightValue = (heightString, unit) => {
+    if (unit === "cm") {
+      return parseInt(heightString.replace(" cm", ""));
+    }
+    return ftToCm(heightString);
+  };
+
+  const getWeightValue = (weightString) => {
+    return parseInt(weightString.replace(" kg", ""));
+  };
+
+  const stateToApiKey = (stateName) => {
+    return stateName.toLowerCase().replace(/\s+/g, "_");
+  };
+
   const validateField = (fieldName, value) => {
-    let errorMessage = '';
-    
+    let errorMessage = "";
+
     switch (fieldName) {
-      case 'sex':
+      case "sex":
         if (!value) {
-          errorMessage = 'Please select a gender';
+          errorMessage = "Please select a gender";
         }
         break;
-        
-      case 'otherSex':
-        if (preferences.sex === 'Others' && !value.trim()) {
-          errorMessage = 'Please specify your gender';
+
+      case "otherSex":
+        if (preferences.sex === "Others" && !value.trim()) {
+          errorMessage = "Please specify your gender";
         }
         break;
-        
-      case 'educationLevel':
+
+      case "educationLevel":
         if (!value) {
-          errorMessage = 'Please select your education level';
+          errorMessage = "Please select your education level";
         }
         break;
-        
-      case 'occupationType':
+
+      case "occupationType":
         if (!value) {
-          errorMessage = 'Please select your occupation type';
+          errorMessage = "Please select your occupation type";
         }
         break;
-        
-      case 'state':
+
+      case "state":
         if (!value) {
-          errorMessage = 'Please select a state';
+          errorMessage = "Please select a state";
         }
         break;
-        
-      case 'city':
+
+      case "city":
         if (!value && preferences.location.state) {
-          errorMessage = 'Please select a city';
+          errorMessage = "Please select a city";
         }
         break;
-        
-      case 'religion':
+
+      case "religion":
         if (!value) {
-          errorMessage = 'Please select a religion';
+          errorMessage = "Please select a religion";
         }
         break;
-        
-      case 'caste':
+
+      case "caste":
         if (!value && preferences.religion) {
-          errorMessage = 'Please select a caste';
+          errorMessage = "Please select a caste";
         }
         break;
-        
-      case 'lifestyle':
-        if (!value) {
-          errorMessage = 'Please select a lifestyle preference';
+
+      case "lifestyle":
+        if (!value && preferences.lifestyle) {
+          errorMessage = "Please select a lifestyle preference";
         }
         break;
     }
-    
-    setErrors(prev => ({
+
+    setErrors((prev) => ({
       ...prev,
-      [fieldName]: errorMessage
+      [fieldName]: errorMessage,
     }));
-    
-    return errorMessage === '';
+
+    return errorMessage === "";
   };
 
   const validateRange = (field, values) => {
     const { min, max } = values;
-    let errorMessage = '';
-    
+    let errorMessage = "";
+
     if (!min && !max) {
-      errorMessage = `Please select both minimum and maximum ${field.replace('Range', '')} values`;
+      errorMessage = `Please select both minimum and maximum ${field.replace(
+        "Range",
+        ""
+      )} values`;
     } else if (!min) {
-      errorMessage = `Please select minimum ${field.replace('Range', '')} value`;
+      errorMessage = `Please select minimum ${field.replace(
+        "Range",
+        ""
+      )} value`;
     } else if (!max) {
-      errorMessage = `Please select maximum ${field.replace('Range', '')} value`;
+      errorMessage = `Please select maximum ${field.replace(
+        "Range",
+        ""
+      )} value`;
     } else {
       let minVal, maxVal;
-      
-      if (field === 'heightRange' && preferences.heightRange.unit === 'ft') {
-        minVal = ftToCm(min);
-        maxVal = ftToCm(max);
-      } else {
-        minVal = parseInt(min);
-        maxVal = parseInt(max);
+
+      if (field === "ageRange") {
+        minVal = getAgeValue(min);
+        maxVal = getAgeValue(max);
+      } else if (field === "heightRange") {
+        minVal = getHeightValue(min, preferences.heightRange.unit);
+        maxVal = getHeightValue(max, preferences.heightRange.unit);
+      } else if (field === "weight") {
+        minVal = getWeightValue(min);
+        maxVal = getWeightValue(max);
       }
-      
+
       if (minVal > maxVal) {
-        errorMessage = `Minimum ${field.replace('Range', '')} cannot be greater than maximum ${field.replace('Range', '')}`;
+        errorMessage = `Minimum ${field.replace(
+          "Range",
+          ""
+        )} cannot be greater than maximum ${field.replace("Range", "")}`;
       }
     }
-    
-    setErrors(prev => ({ 
-      ...prev, 
-      [field]: errorMessage 
+
+    setErrors((prev) => ({
+      ...prev,
+      [field]: errorMessage,
     }));
-    
-    return errorMessage === '';
+
+    return errorMessage === "";
   };
 
   const updatePreference = (field, value) => {
-    setPreferences(prev => ({
+    setPreferences((prev) => ({
       ...prev,
-      [field]: value
+      [field]: value,
     }));
-    
-    // Clear error when user makes a selection
+
     if (errors[field]) {
-      setErrors(prev => ({
+      setErrors((prev) => ({
         ...prev,
-        [field]: ''
+        [field]: "",
       }));
     }
-    
-    // Validate field immediately after update
+
     setTimeout(() => {
       validateField(field, value);
     }, 0);
@@ -277,155 +350,166 @@ const MatrimonialProfile = () => {
   const updateNestedPreference = (parent, field, value) => {
     const updatedValues = {
       ...preferences[parent],
-      [field]: value
+      [field]: value,
     };
-    
-    setPreferences(prev => ({
+
+    setPreferences((prev) => ({
       ...prev,
-      [parent]: updatedValues
+      [parent]: updatedValues,
     }));
 
-    if (parent === 'location' && field === 'state') {
-      setPreferences(prev => ({
+    if (parent === "location" && field === "state") {
+      setPreferences((prev) => ({
         ...prev,
         location: {
-          ...prev.location,
           state: value,
-          city: ''
-        }
+          city: "",
+        },
       }));
-      
-      // Clear city error when state changes
-      setErrors(prev => ({
+
+      setErrors((prev) => ({
         ...prev,
-        city: ''
+        city: "",
       }));
-      
-      // Validate state
+
       setTimeout(() => {
-        validateField('state', value);
+        validateField("state", value);
       }, 0);
-    } else if (parent === 'location' && field === 'city') {
-      // Validate city
+    } else if (parent === "location" && field === "city") {
       setTimeout(() => {
-        validateField('city', value);
+        validateField("city", value);
       }, 0);
     } else {
-      // Clear range error when user makes a selection
       if (errors[parent]) {
-        setErrors(prev => ({
+        setErrors((prev) => ({
           ...prev,
-          [parent]: ''
+          [parent]: "",
         }));
       }
-      
+
       setTimeout(() => {
         validateRange(parent, updatedValues);
       }, 0);
     }
   };
-  
+
   const toggleHeightUnit = () => {
-    setPreferences(prev => ({
+    setPreferences((prev) => ({
       ...prev,
       heightRange: {
-        min: '',  
-        max: '',  
-        unit: prev.heightRange.unit === 'cm' ? 'ft' : 'cm' 
-      }
+        min: "",
+        max: "",
+        unit: prev.heightRange.unit === "cm" ? "ft" : "cm",
+      },
     }));
 
-    setErrors(prev => ({
+    setErrors((prev) => ({
       ...prev,
-      heightRange: ''
+      heightRange: "",
     }));
   };
 
-  const openPopup = (type, title, minMaxField = '') => {
+  const openPopup = (type, title, minMaxField = "") => {
+    if (!dataLoaded) {
+      Alert.alert("Loading", "Please wait while data is being loaded...");
+      return;
+    }
+
     let items = [];
-    
-    switch(type) {
-      case 'sex':
+
+    switch (type) {
+      case "sex":
         items = SEX_OPTIONS;
         break;
-      case 'education':
-        items = EDUCATION_LEVELS;
+      case "education":
+        items = apiData.education_level;
         break;
-      case 'occupation':
-        items = OCCUPATION_TYPES;
+      case "occupation":
+        items = apiData.occupation;
         break;
-      case 'state':
-        items = INDIAN_STATES;
+      case "state":
+        items = apiData.state;
         break;
-      case 'city':
-        items = preferences.location.state && CITIES_BY_STATE[preferences.location.state] 
-          ? CITIES_BY_STATE[preferences.location.state] 
-          : ["No cities available"];
+      case "city":
+        const stateKey = stateToApiKey(preferences.location.state);
+        items =
+          preferences.location.state && apiData.city[stateKey]
+            ? apiData.city[stateKey]
+            : ["No cities available"];
         break;
-      case 'religion':
-        items = RELIGIONS;
+      case "religion":
+        items = apiData.religion;
         break;
-      case 'caste':
-        items = preferences.religion && CASTES[preferences.religion] 
-          ? CASTES[preferences.religion] 
-          : [];
+      case "caste":
+        const religionKey = preferences.religion.toLowerCase();
+        items =
+          preferences.religion && apiData.caste[religionKey]
+            ? apiData.caste[religionKey]
+            : [];
         break;
-      case 'lifestyle':
-        items = LIFESTYLE_TYPES;
+      case "lifestyle":
+        items = apiData.lifestyle;
         break;
-      case 'age':
-        if (minMaxField === 'min' && preferences.ageRange.max) {
-          items = AGE_OPTIONS.filter(age => parseInt(age) <= parseInt(preferences.ageRange.max));
-        } else if (minMaxField === 'max' && preferences.ageRange.min) {
-          items = AGE_OPTIONS.filter(age => parseInt(age) >= parseInt(preferences.ageRange.min));
+      case "age":
+        if (minMaxField === "min" && preferences.ageRange.max) {
+          const maxAge = getAgeValue(preferences.ageRange.max);
+          items = apiData.age.filter((age) => getAgeValue(age) <= maxAge);
+        } else if (minMaxField === "max" && preferences.ageRange.min) {
+          const minAge = getAgeValue(preferences.ageRange.min);
+          items = apiData.age.filter((age) => getAgeValue(age) >= minAge);
         } else {
-          items = AGE_OPTIONS;
+          items = apiData.age;
         }
         break;
-      case 'height':
-        const heightOptions = preferences.heightRange.unit === 'cm' ? HEIGHT_OPTIONS_CM : HEIGHT_OPTIONS_FT;
-        
-        if (minMaxField === 'min' && preferences.heightRange.max) {
-          if (preferences.heightRange.unit === 'cm') {
-            const maxHeight = parseInt(preferences.heightRange.max);
-            items = heightOptions.filter(h => parseInt(h.split(' ')[0]) <= maxHeight);
-          } else {
-            const maxHeightCm = ftToCm(preferences.heightRange.max);
-            items = heightOptions.filter(h => ftToCm(h) <= maxHeightCm);
-          }
-        } else if (minMaxField === 'max' && preferences.heightRange.min) {
-          if (preferences.heightRange.unit === 'cm') {
-            const minHeight = parseInt(preferences.heightRange.min);
-            items = heightOptions.filter(h => parseInt(h.split(' ')[0]) >= minHeight);
-          } else {
-            const minHeightCm = ftToCm(preferences.heightRange.min);
-            items = heightOptions.filter(h => ftToCm(h) >= minHeightCm);
-          }
+      case "height":
+        const heightOptions =
+          preferences.heightRange.unit === "cm"
+            ? apiData.height_cm
+            : apiData.height_ft_in;
+
+        if (minMaxField === "min" && preferences.heightRange.max) {
+          const maxHeightCm = getHeightValue(
+            preferences.heightRange.max,
+            preferences.heightRange.unit
+          );
+          items = heightOptions.filter(
+            (h) =>
+              getHeightValue(h, preferences.heightRange.unit) <= maxHeightCm
+          );
+        } else if (minMaxField === "max" && preferences.heightRange.min) {
+          const minHeightCm = getHeightValue(
+            preferences.heightRange.min,
+            preferences.heightRange.unit
+          );
+          items = heightOptions.filter(
+            (h) =>
+              getHeightValue(h, preferences.heightRange.unit) >= minHeightCm
+          );
         } else {
           items = heightOptions;
         }
         break;
-      case 'weight':
-        if (minMaxField === 'min' && preferences.weight.max) {
-          const maxWeight = parseInt(preferences.weight.max);
-          items = WEIGHT_OPTIONS.filter(w => parseInt(w.split(' ')[0]) <= maxWeight);
-        } else if (minMaxField === 'max' && preferences.weight.min) {
-          const minWeight = parseInt(preferences.weight.min);
-          items = WEIGHT_OPTIONS.filter(w => parseInt(w.split(' ')[0]) >= minWeight);
+      case "weight":
+        if (minMaxField === "min" && preferences.weight.max) {
+          const maxWeight = getWeightValue(preferences.weight.max);
+          items = apiData.weight.filter((w) => getWeightValue(w) <= maxWeight);
+        } else if (minMaxField === "max" && preferences.weight.min) {
+          const minWeight = getWeightValue(preferences.weight.min);
+          items = apiData.weight.filter((w) => getWeightValue(w) >= minWeight);
         } else {
-          items = WEIGHT_OPTIONS;
+          items = apiData.weight;
         }
         break;
       default:
         items = [];
     }
-    
+
     setActiveDropdown(type);
     setMinMaxType(minMaxField);
     setDropdownItems(items);
     setDropdownTitle(title);
     setPopupVisible(true);
-    
+
     Animated.parallel([
       Animated.timing(fadeAnim, {
         toValue: 1,
@@ -436,7 +520,7 @@ const MatrimonialProfile = () => {
         toValue: 1,
         duration: 300,
         useNativeDriver: true,
-      })
+      }),
     ]).start();
   };
 
@@ -451,7 +535,7 @@ const MatrimonialProfile = () => {
         toValue: 0.9,
         duration: 200,
         useNativeDriver: true,
-      })
+      }),
     ]).start(() => {
       setPopupVisible(false);
       if (callback) callback();
@@ -460,92 +544,82 @@ const MatrimonialProfile = () => {
 
   const handleSelect = (value) => {
     closePopup(() => {
-      switch(activeDropdown) {
-        case 'sex':
-          updatePreference('sex', value);
+      switch (activeDropdown) {
+        case "sex":
+          updatePreference("sex", value);
           break;
-        case 'education':
-          updatePreference('educationLevel', value);
+        case "education":
+          updatePreference("educationLevel", value);
           break;
-        case 'occupation':
-          updatePreference('occupationType', value);
+        case "occupation":
+          updatePreference("occupationType", value);
           break;
-        case 'state':
-          setPreferences(prev => ({
+        case "state":
+          setPreferences((prev) => ({
             ...prev,
             location: {
               state: value,
-              city: ''
-            }
+              city: "",
+            },
           }));
-          // Clear errors
-          setErrors(prev => ({
+          setErrors((prev) => ({
             ...prev,
-            state: '',
-            city: ''
+            state: "",
+            city: "",
           }));
-          // Validate state
           setTimeout(() => {
-            validateField('state', value);
+            validateField("state", value);
           }, 0);
           break;
-        case 'city':
+        case "city":
           if (value !== "No cities available") {
-            setPreferences(prev => ({
+            setPreferences((prev) => ({
               ...prev,
               location: {
                 ...prev.location,
-                city: value
-              }
+                city: value,
+              },
             }));
-            // Clear city error
-            setErrors(prev => ({
+            setErrors((prev) => ({
               ...prev,
-              city: ''
+              city: "",
             }));
-            // Validate city
             setTimeout(() => {
-              validateField('city', value);
+              validateField("city", value);
             }, 0);
           }
           break;
-        case 'religion':
-          setPreferences(prev => ({
+        case "religion":
+          setPreferences((prev) => ({
             ...prev,
             religion: value,
-            caste: ''
+            caste: "",
           }));
-          // Clear errors
-          setErrors(prev => ({
+          setErrors((prev) => ({
             ...prev,
-            religion: '',
-            caste: ''
+            religion: "",
+            caste: "",
           }));
-          // Validate religion
           setTimeout(() => {
-            validateField('religion', value);
+            validateField("religion", value);
           }, 0);
           break;
-        case 'caste':
-          updatePreference('caste', value);
+        case "caste":
+          updatePreference("caste", value);
           break;
-        case 'lifestyle':
-          updatePreference('lifestyle', value);
+        case "lifestyle":
+          updatePreference("lifestyle", value);
           break;
-        case 'age':
-          updateNestedPreference('ageRange', minMaxType, value);
+        case "age":
+          updateNestedPreference("ageRange", minMaxType, value);
           break;
-        case 'height':
-          if (preferences.heightRange.unit === 'cm') {
-            const heightValue = value.split(' ')[0];
-            updateNestedPreference('heightRange', minMaxType, heightValue);
-          } else {
-            updateNestedPreference('heightRange', minMaxType, value);
-          }
+        case "height":
+          // FIXED: Handle height selection properly
+          updateNestedPreference("heightRange", minMaxType, value);
           break;
-        case 'weight':
-          const weightValue = value.split(' ')[0];
-          updateNestedPreference('weight', minMaxType, weightValue);
+        case "weight":
+          const weightValue = value.replace(" kg", "");
+          updateNestedPreference("weight", minMaxType, weightValue);
           break;
       }
     });
@@ -553,81 +627,270 @@ const MatrimonialProfile = () => {
 
   const validateAllFields = () => {
     let isValid = true;
-    const newErrors = {};
 
-    // Validate all individual fields
     const fieldsToValidate = [
-      'sex', 'educationLevel', 'occupationType', 'religion', 'lifestyle'
+      "sex",
+      "educationLevel",
+      "occupationType",
+      "religion",
+      "lifestyle",
     ];
 
-    fieldsToValidate.forEach(field => {
+    fieldsToValidate.forEach((field) => {
       const fieldValue = preferences[field];
       if (!validateField(field, fieldValue)) {
         isValid = false;
       }
     });
 
-    // Validate location fields
-    if (!validateField('state', preferences.location.state)) {
+    if (!validateField("state", preferences.location.state)) {
       isValid = false;
     }
-    if (!validateField('city', preferences.location.city)) {
-      isValid = false;
-    }
-
-    // Validate otherSex if sex is Others
-    if (!validateField('otherSex', preferences.otherSex)) {
+    if (!validateField("city", preferences.location.city)) {
       isValid = false;
     }
 
-    // Validate caste if religion is selected
-    if (!validateField('caste', preferences.caste)) {
+    if (!validateField("otherSex", preferences.otherSex)) {
       isValid = false;
     }
 
-    // Validate ranges
+    if (!validateField("caste", preferences.caste)) {
+      isValid = false;
+    }
+
     const rangeValidations = [
-      validateRange('ageRange', preferences.ageRange),
-      validateRange('heightRange', preferences.heightRange),
-      validateRange('weight', preferences.weight)
+      validateRange("ageRange", preferences.ageRange),
+      validateRange("heightRange", preferences.heightRange),
+      validateRange("weight", preferences.weight),
     ];
-    
-    if (!rangeValidations.every(valid => valid)) {
+
+    if (!rangeValidations.every((valid) => valid)) {
       isValid = false;
     }
 
     return isValid;
   };
 
+  // useEffect(() => {
+  //   const loadEditData = async () => {
+  //     if (params.isEdit === 'true') {
+  //       setIsEditMode(true);
+
+  //       try {
+  //         const storedData = await AsyncStorage.getItem('editData');
+  //         if (storedData) {
+  //           const editData = JSON.parse(storedData);
+  //           console.log('Loaded edit data:', editData);
+
+  //           setPreferences(prevPrefs => ({
+  //             ...prevPrefs,
+  //             ageRange: {
+  //               min: editData.minAge ? `${editData.minAge} years` : '',
+  //               max: editData.maxAge ? `${editData.maxAge} years` : ''
+  //             },
+  //             heightRange: {
+  //               // FIXED: Handle height display properly for edit mode
+  //               min: editData.minHeight ? (editData.heightUnit === 'cm' ? `${editData.minHeight} cm` : cmToFt(editData.minHeight)) : '',
+  //               max: editData.maxHeight ? (editData.heightUnit === 'cm' ? `${editData.maxHeight} cm` : cmToFt(editData.maxHeight)) : '',
+  //               unit: editData.heightUnit || 'cm'
+  //             },
+  //             weight: {
+  //               min: editData.minWeight ? `${editData.minWeight}` : '',
+  //               max: editData.maxWeight ? `${editData.maxWeight}` : ''
+  //             },
+  //             sex: editData.sex || '',
+  //             otherSex: editData.otherSex || '',
+  //             educationLevel: editData.educationLevel || '',
+  //             occupationType: editData.occupationType || '',
+  //             location: {
+  //               state: editData.state || '',
+  //               city: editData.city || ''
+  //             },
+  //             religion: editData.religion || '',
+  //             caste: editData.caste || '',
+  //             lifestyle: editData.lifestyle || ''
+  //           }));
+
+  //           await AsyncStorage.removeItem('editData');
+  //         }
+
+  //         if (params.editData) {
+  //           try {
+  //             const editData = JSON.parse(decodeURIComponent(params.editData));
+  //             console.log('Loaded edit data from params:', editData);
+
+  //             setPreferences(prevPrefs => ({
+  //               ...prevPrefs,
+  //               ageRange: {
+  //                 min: editData.minAge ? `${editData.minAge} years` : '',
+  //                 max: editData.maxAge ? `${editData.maxAge} years` : ''
+  //               },
+  //               heightRange: {
+  //                 // FIXED: Handle height display properly for edit mode
+  //                 min: editData.minHeight ? (editData.heightUnit === 'cm' ? `${editData.minHeight} cm` : cmToFt(editData.minHeight)) : '',
+  //                 max: editData.maxHeight ? (editData.heightUnit === 'cm' ? `${editData.maxHeight} cm` : cmToFt(editData.maxHeight)) : '',
+  //                 unit: editData.heightUnit || 'cm'
+  //               },
+  //               weight: {
+  //                 min: editData.minWeight ? `${editData.minWeight}` : '',
+  //                 max: editData.maxWeight ? `${editData.maxWeight}` : ''
+  //               },
+  //               sex: editData.sex || '',
+  //               otherSex: editData.otherSex || '',
+  //               educationLevel: editData.educationLevel || '',
+  //               occupationType: editData.occupationType || '',
+  //               location: {
+  //                 state: editData.state || '',
+  //                 city: editData.city || ''
+  //               },
+  //               religion: editData.religion || '',
+  //               caste: editData.caste || '',
+  //               lifestyle: editData.lifestyle || ''
+  //             }));
+  //           } catch (parseError) {
+  //             console.error('Error parsing editData from params:', parseError);
+  //           }
+  //         }
+
+  //       } catch (error) {
+  //         console.error('Error loading edit data:', error);
+  //         Alert.alert('Error', 'Failed to load existing data');
+  //       }
+  //     }
+  //   };
+
+  //   if (dataLoaded) {
+  //     loadEditData();
+  //   }
+  // }, [params, dataLoaded]);
+
+  useEffect(() => {
+    const loadEditData = async () => {
+      if (params.isEdit === "true") {
+        setIsEditMode(true);
+
+        try {
+          const storedData = await AsyncStorage.getItem("editData");
+          const editData = storedData
+            ? JSON.parse(storedData)
+            : params.editData
+            ? JSON.parse(decodeURIComponent(params.editData))
+            : null;
+
+          if (editData) {
+            console.log("Loaded edit data:", editData);
+
+            // Ensure caste and height are updated only when their base data exists
+            const casteOptions =
+              editData.religion?.toLowerCase() &&
+              apiData.caste[editData.religion.toLowerCase()];
+            const heightMinFormatted = editData.minHeight
+              ? editData.heightUnit === "cm"
+                ? `${editData.minHeight} cm`
+                : cmToFt(editData.minHeight)
+              : "";
+            const heightMaxFormatted = editData.maxHeight
+              ? editData.heightUnit === "cm"
+                ? `${editData.maxHeight} cm`
+                : cmToFt(editData.maxHeight)
+              : "";
+
+            setPreferences((prevPrefs) => ({
+              ...prevPrefs,
+              ageRange: {
+                min: editData.minAge ? `${editData.minAge} years` : "",
+                max: editData.maxAge ? `${editData.maxAge} years` : "",
+              },
+              heightRange: {
+                min:
+                  editData.minHeight !== null &&
+                  editData.minHeight !== undefined
+                    ? editData.heightUnit === "cm"
+                      ? `${editData.minHeight} cm`
+                      : cmToFt(editData.minHeight)
+                    : "",
+                max:
+                  editData.maxHeight !== null &&
+                  editData.maxHeight !== undefined
+                    ? editData.heightUnit === "cm"
+                      ? `${editData.maxHeight} cm`
+                      : cmToFt(editData.maxHeight)
+                    : "",
+                unit: editData.heightUnit || "cm",
+              },
+
+              weight: {
+                min: editData.minWeight ? `${editData.minWeight}` : "",
+                max: editData.maxWeight ? `${editData.maxWeight}` : "",
+              },
+              sex: editData.sex || "",
+              otherSex: editData.otherSex || "",
+              educationLevel: editData.educationLevel || "",
+              occupationType: editData.occupationType || "",
+              location: {
+                state: editData.state || "",
+                city: editData.city || "",
+              },
+              religion: editData.religion || "",
+              caste: casteOptions?.includes(editData.caste)
+                ? editData.caste
+                : "",
+              lifestyle: editData.lifestyle || "",
+            }));
+
+            await AsyncStorage.removeItem("editData");
+          }
+        } catch (error) {
+          console.error("Error loading edit data:", error);
+          Alert.alert("Error", "Failed to load existing data");
+        }
+      }
+    };
+
+    if (dataLoaded) loadEditData();
+  }, [params, dataLoaded]);
+
   const handleSavePreferences = async () => {
+    if (!dataLoaded) {
+      Alert.alert("Loading", "Please wait while data is being loaded...");
+      return;
+    }
+
     if (validateAllFields()) {
-      const displayPreferences = { ...preferences };
+      const minAge = preferences.ageRange.min
+        ? getAgeValue(preferences.ageRange.min)
+        : "";
+      const maxAge = preferences.ageRange.max
+        ? getAgeValue(preferences.ageRange.max)
+        : "";
 
-      if (preferences.heightRange.unit === 'cm') {
-        if (displayPreferences.heightRange.min) {
-          displayPreferences.heightRange.min += ' cm';
-        }
-        if (displayPreferences.heightRange.max) {
-          displayPreferences.heightRange.max += ' cm';
-        }
+      let minHeight = preferences.heightRange.min;
+      let maxHeight = preferences.heightRange.max;
+
+      if (preferences.heightRange.unit === "cm") {
+        minHeight = minHeight ? parseInt(minHeight.replace(" cm", "")) : "";
+        maxHeight = maxHeight ? parseInt(maxHeight.replace(" cm", "")) : "";
+      } else {
+        minHeight = minHeight ? ftToCm(minHeight) : "";
+        maxHeight = maxHeight ? ftToCm(maxHeight) : "";
       }
 
-      if (displayPreferences.weight.min) {
-        displayPreferences.weight.min += ' kg';
-      }
-      if (displayPreferences.weight.max) {
-        displayPreferences.weight.max += ' kg';
-      }
+      const minWeight = preferences.weight.min
+        ? parseInt(preferences.weight.min)
+        : "";
+      const maxWeight = preferences.weight.max
+        ? parseInt(preferences.weight.max)
+        : "";
 
       const payloadData = {
-        minAge: preferences.ageRange.min,
-        maxAge: preferences.ageRange.max,
-        minHeight: preferences.heightRange.min,
-        maxHeight: preferences.heightRange.max,
+        minAge: minAge,
+        maxAge: maxAge,
+        minHeight: minHeight,
+        maxHeight: maxHeight,
         heightUnit: preferences.heightRange.unit,
-        minWeight: preferences.weight.min,
-        maxWeight: preferences.weight.max,
-        weightUnit: preferences.weight.unit?.split(" ")[1] || "kg",
+        minWeight: minWeight,
+        maxWeight: maxWeight,
+        weightUnit: "kg",
         caste: preferences.caste,
         religion: preferences.religion,
         lifestyle: preferences.lifestyle,
@@ -640,56 +903,67 @@ const MatrimonialProfile = () => {
       };
 
       try {
-        const token = await AsyncStorage.getItem('token');
+        const token = await AsyncStorage.getItem("token");
 
         if (!token) {
-          Alert.alert('Error', 'User not logged in. Token not found.');
+          Alert.alert("Error", "User not logged in. Token not found.");
           return;
         }
 
-        const res = await axios.post(
-          'http://stu.globalknowledgetech.com:5003/partnerpreference/create-preference',
-          payloadData,
-          {
-            headers: {
-              Authorization: `Bearer ${token}`
-            }
-          }
-        );
+        const apiUrl = isEditMode
+          ? "http://stu.globalknowledgetech.com:5003/partnerpreference/update-preference"
+          : "http://stu.globalknowledgetech.com:5003/partnerpreference/create-preference";
 
-        console.log('Preference save success:', res.data);
-        router.push('/navigation/MainTabs');
-        Alert.alert('Success', 'Partner preferences saved successfully!');
+        const response = isEditMode
+          ? await axios.put(apiUrl, payloadData, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            })
+          : await axios.post(apiUrl, payloadData, {
+              headers: {
+                Authorization: `Bearer ${token}`,
+              },
+            });
+
+            if(response.status == 200){
+        router.push("/navigation/MainTabs");
+                console.log("Preference save success:");
+
+
+            }
+
+        Alert.alert("Success", "Partner preferences saved successfully!");
       } catch (err) {
-        console.log('Preference save failed:', err);
-        Alert.alert('Error', 'Failed to save preferences.');
+        console.log("Preference save failed:", err);
+        Alert.alert("Error", "Failed to save preferences.");
       }
 
-      console.log('Saving preferences:', displayPreferences);
-      
+      console.log("Saving preferences:", payloadData);
     } else {
-      // Show specific validation errors
       const errorMessages = [];
-      Object.keys(errors).forEach(key => {
+      Object.keys(errors).forEach((key) => {
         if (errors[key]) {
-          const fieldLabel = key.replace(/([A-Z])/g, ' $1').replace(/^./, str => str.toUpperCase());
+          const fieldLabel = key
+            .replace(/([A-Z])/g, " $1")
+            .replace(/^./, (str) => str.toUpperCase());
           errorMessages.push(`${fieldLabel}: ${errors[key]}`);
         }
       });
 
       Alert.alert(
-        'Validation Error',
-        errorMessages.length > 0 
-          ? `Please fix the following issues:\n\n${errorMessages.join('\n')}`
-          : 'Please fill in all required fields.',
-        [{ text: 'OK' }]
+        "Validation Error",
+        errorMessages.length > 0
+          ? `Please fix the following issues:\n\n${errorMessages.join("\n")}`
+          : "Please fill in all required fields.",
+        [{ text: "OK" }]
       );
     }
   };
 
   const renderError = (errorText) => {
     if (!errorText) return null;
-    
+
     return (
       <View style={styles.errorContainer}>
         <Ionicons name="alert-circle" size={16} color="#ef4444" />
@@ -700,87 +974,111 @@ const MatrimonialProfile = () => {
 
   const formatHeightDisplay = (value, unit, placeholder) => {
     if (!value) return placeholder;
-    return unit === 'cm' ? `${value} cm` : value;
+    return value;
   };
 
+
   return (
-    <SafeAreaView style={{ flex: 1, backgroundColor: '#f8fafc' }}>
+    <SafeAreaView style={{ flex: 1, backgroundColor: "#f8fafc" }}>
       <KeyboardAvoidingView
-        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={{ flex: 1 }}
       >
-        <View style={{
-          width: '100%',
-          backgroundColor: '#EC4899',
-          paddingVertical: 24,
-          shadowColor: '#000',
-          shadowOffset: { width: 0, height: 2 },
-          shadowOpacity: 0.2,
-          shadowRadius: 4,
-          elevation: 3
-        }}>
-          <Text style={{
-            color: 'white',
-            fontSize: 25,
-            fontWeight: 'bold',
-            textAlign: 'center'
-          }}>
-           Create Profile
+        <View
+          style={{
+            width: "100%",
+            backgroundColor: "#EC4899",
+            paddingVertical: 24,
+            shadowColor: "#000",
+            shadowOffset: { width: 0, height: 2 },
+            shadowOpacity: 0.2,
+            shadowRadius: 4,
+            elevation: 3,
+          }}
+        >
+          <Text
+            style={{
+              color: "white",
+              fontSize: 25,
+              fontWeight: "bold",
+              textAlign: "center",
+            }}
+          >
+            Create Profile
           </Text>
-          <Text style={{
-            color: 'white',
-            textAlign: 'center',
-            marginTop: 6,
-            opacity: 0.9,
-            fontSize:18
-          }}>
-            Find your perfect match by completing your profile
+          <Text
+            style={{
+              color: "white",
+              textAlign: "center",
+              marginTop: 6,
+              opacity: 0.9,
+              fontSize: 18,
+            }}
+          >
+            {isEditMode
+              ? "Edit Professional Details"
+              : "Find your perfect match by completing your profile"}
           </Text>
         </View>
-        
-        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+
+        <ScrollView
+          style={styles.container}
+          showsVerticalScrollIndicator={false}
+        >
           <View style={styles.header}>
             <Text style={styles.heading}>Partner Preferences</Text>
           </View>
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Basic Details</Text>
-            
+
             <Text style={styles.label}>Age Range (years) *</Text>
             <View style={styles.rangeContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.dropdownSelector, 
+                  styles.dropdownSelector,
                   styles.halfInput,
-                  errors.ageRange ? styles.inputError : null
+                  errors.ageRange ? styles.inputError : null,
                 ]}
-                onPress={() => openPopup('age', 'Select Minimum Age', 'min')}
+                onPress={() => openPopup("age", "Select Minimum Age", "min")}
               >
-                <Ionicons name="calendar-outline" size={20} color={errors.ageRange ? "#ef4444" : "#db2777"} />
-                <Text style={[
-                  styles.dropdownText, 
-                  !preferences.ageRange.min && styles.dropdownPlaceholder
-                ]}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={errors.ageRange ? "#ef4444" : "#db2777"}
+                />
+                <Text
+                  style={[
+                    styles.dropdownText,
+                    !preferences.ageRange.min && styles.dropdownPlaceholder,
+                  ]}
+                >
                   {preferences.ageRange.min || "Min Age"}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#64748b" />
               </TouchableOpacity>
-              
+
               <Text style={styles.rangeText}>to</Text>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[
-                  styles.dropdownSelector, 
+                  styles.dropdownSelector,
                   styles.halfInput,
-                  errors.ageRange ? styles.inputError : null
+                  errors.ageRange ? styles.inputError : null,
                 ]}
-                onPress={() => openPopup('age', 'Select Maximum Age', 'max')}
+                onPress={() => openPopup("age", "Select Maximum Age", "max")}
               >
-                <Ionicons name="calendar-outline" size={20} color={errors.ageRange ? "#ef4444" : "#db2777"} />
-                <Text style={[
-                  styles.dropdownText, 
-                  !preferences.ageRange.max && styles.dropdownPlaceholder
-                ]}>
+                <Ionicons
+                  name="calendar-outline"
+                  size={20}
+                  color={errors.ageRange ? "#ef4444" : "#db2777"}
+                />
+                <Text
+                  style={[
+                    styles.dropdownText,
+                    !preferences.ageRange.max && styles.dropdownPlaceholder,
+                  ]}
+                >
                   {preferences.ageRange.max || "Max Age"}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#64748b" />
@@ -790,56 +1088,82 @@ const MatrimonialProfile = () => {
 
             <View style={styles.labelRow}>
               <Text style={styles.label}>Height Range *</Text>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={styles.unitToggle}
                 onPress={toggleHeightUnit}
               >
                 <Text style={styles.unitToggleText}>
-                  {preferences.heightRange.unit === 'cm' ? 'Switch to ft/in' : 'Switch to cm'}
+                  {preferences.heightRange.unit === "cm"
+                    ? "Switch to ft/in"
+                    : "Switch to cm"}
                 </Text>
               </TouchableOpacity>
             </View>
             <View style={styles.rangeContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.dropdownSelector, 
+                  styles.dropdownSelector,
                   styles.halfInput,
-                  errors.heightRange ? styles.inputError : null
+                  errors.heightRange ? styles.inputError : null,
                 ]}
-                onPress={() => openPopup('height', `Select Minimum Height (${preferences.heightRange.unit})`, 'min')}
+                onPress={() =>
+                  openPopup(
+                    "height",
+                    `Select Minimum Height (${preferences.heightRange.unit})`,
+                    "min"
+                  )
+                }
               >
-                <Ionicons name="resize-outline" size={20} color={errors.heightRange ? "#ef4444" : "#db2777"} />
-                <Text style={[
-                  styles.dropdownText, 
-                  !preferences.heightRange.min && styles.dropdownPlaceholder
-                ]}>
+                <Ionicons
+                  name="resize-outline"
+                  size={20}
+                  color={errors.heightRange ? "#ef4444" : "#db2777"}
+                />
+                <Text
+                  style={[
+                    styles.dropdownText,
+                    !preferences.heightRange.min && styles.dropdownPlaceholder,
+                  ]}
+                >
                   {formatHeightDisplay(
-                    preferences.heightRange.min, 
-                    preferences.heightRange.unit, 
+                    preferences.heightRange.min,
+                    preferences.heightRange.unit,
                     "Min Height"
                   )}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#64748b" />
               </TouchableOpacity>
-              
+
               <Text style={styles.rangeText}>to</Text>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[
-                  styles.dropdownSelector, 
+                  styles.dropdownSelector,
                   styles.halfInput,
-                  errors.heightRange ? styles.inputError : null
+                  errors.heightRange ? styles.inputError : null,
                 ]}
-                onPress={() => openPopup('height', `Select Maximum Height (${preferences.heightRange.unit})`, 'max')}
+                onPress={() =>
+                  openPopup(
+                    "height",
+                    `Select Maximum Height (${preferences.heightRange.unit})`,
+                    "max"
+                  )
+                }
               >
-                <Ionicons name="resize-outline" size={20} color={errors.heightRange ? "#ef4444" : "#db2777"} />
-                <Text style={[
-                  styles.dropdownText, 
-                  !preferences.heightRange.max && styles.dropdownPlaceholder
-                ]}>
+                <Ionicons
+                  name="resize-outline"
+                  size={20}
+                  color={errors.heightRange ? "#ef4444" : "#db2777"}
+                />
+                <Text
+                  style={[
+                    styles.dropdownText,
+                    !preferences.heightRange.max && styles.dropdownPlaceholder,
+                  ]}
+                >
                   {formatHeightDisplay(
-                    preferences.heightRange.max, 
-                    preferences.heightRange.unit, 
+                    preferences.heightRange.max,
+                    preferences.heightRange.unit,
                     "Max Height"
                   )}
                 </Text>
@@ -850,40 +1174,60 @@ const MatrimonialProfile = () => {
 
             <Text style={styles.label}>Weight Range (kg) *</Text>
             <View style={styles.rangeContainer}>
-              <TouchableOpacity 
+              <TouchableOpacity
                 style={[
-                  styles.dropdownSelector, 
+                  styles.dropdownSelector,
                   styles.halfInput,
-                  errors.weight ? styles.inputError : null
+                  errors.weight ? styles.inputError : null,
                 ]}
-                onPress={() => openPopup('weight', 'Select Minimum Weight', 'min')}
+                onPress={() =>
+                  openPopup("weight", "Select Minimum Weight", "min")
+                }
               >
-                <Ionicons name="fitness-outline" size={20} color={errors.weight ? "#ef4444" : "#db2777"} />
-                <Text style={[
-                  styles.dropdownText, 
-                  !preferences.weight.min && styles.dropdownPlaceholder
-                ]}>
-                  {preferences.weight.min ? `${preferences.weight.min} kg` : "Min Weight"}
+                <Ionicons
+                  name="fitness-outline"
+                  size={20}
+                  color={errors.weight ? "#ef4444" : "#db2777"}
+                />
+                <Text
+                  style={[
+                    styles.dropdownText,
+                    !preferences.weight.min && styles.dropdownPlaceholder,
+                  ]}
+                >
+                  {preferences.weight.min
+                    ? `${preferences.weight.min} kg`
+                    : "Min Weight"}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#64748b" />
               </TouchableOpacity>
-              
+
               <Text style={styles.rangeText}>to</Text>
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={[
-                  styles.dropdownSelector, 
+                  styles.dropdownSelector,
                   styles.halfInput,
-                  errors.weight ? styles.inputError : null
+                  errors.weight ? styles.inputError : null,
                 ]}
-                onPress={() => openPopup('weight', 'Select Maximum Weight', 'max')}
+                onPress={() =>
+                  openPopup("weight", "Select Maximum Weight", "max")
+                }
               >
-                <Ionicons name="fitness-outline" size={20} color={errors.weight ? "#ef4444" : "#db2777"} />
-                <Text style={[
-                  styles.dropdownText, 
-                  !preferences.weight.max && styles.dropdownPlaceholder
-                ]}>
-                  {preferences.weight.max ? `${preferences.weight.max} kg` : "Max Weight"}
+                <Ionicons
+                  name="fitness-outline"
+                  size={20}
+                  color={errors.weight ? "#ef4444" : "#db2777"}
+                />
+                <Text
+                  style={[
+                    styles.dropdownText,
+                    !preferences.weight.max && styles.dropdownPlaceholder,
+                  ]}
+                >
+                  {preferences.weight.max
+                    ? `${preferences.weight.max} kg`
+                    : "Max Weight"}
                 </Text>
                 <Ionicons name="chevron-down" size={18} color="#64748b" />
               </TouchableOpacity>
@@ -891,56 +1235,68 @@ const MatrimonialProfile = () => {
             {renderError(errors.weight)}
 
             <Text style={styles.label}>Sex *</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
                 styles.dropdownSelector,
-                errors.sex ? styles.inputError : null
+                errors.sex ? styles.inputError : null,
               ]}
-              onPress={() => openPopup('sex', 'Select Sex')}
+              onPress={() => openPopup("sex", "Select Sex")}
             >
-              <Ionicons name="person-outline" size={20} color={errors.sex ? "#ef4444" : "#db2777"} />
-              <Text style={[
-                styles.dropdownText, 
-                !preferences.sex && styles.dropdownPlaceholder
-              ]}>
+              <Ionicons
+                name="person-outline"
+                size={20}
+                color={errors.sex ? "#ef4444" : "#db2777"}
+              />
+              <Text
+                style={[
+                  styles.dropdownText,
+                  !preferences.sex && styles.dropdownPlaceholder,
+                ]}
+              >
                 {preferences.sex || "Select Sex"}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
             </TouchableOpacity>
             {renderError(errors.sex)}
-            
-            {preferences.sex === 'Others' && (
+
+            {preferences.sex === "Others" && (
               <View style={styles.inputGroup}>
                 <TextInput
                   placeholder="Please specify"
                   style={[
                     styles.input,
-                    errors.otherSex ? styles.inputError : null
+                    errors.otherSex ? styles.inputError : null,
                   ]}
                   value={preferences.otherSex}
-                  onChangeText={(value) => updatePreference('otherSex', value)}
+                  onChangeText={(value) => updatePreference("otherSex", value)}
                 />
               </View>
             )}
-            {preferences.sex === 'Others' && renderError(errors.otherSex)}
+            {preferences.sex === "Others" && renderError(errors.otherSex)}
           </View>
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Education & Career</Text>
-            
+
             <Text style={styles.label}>Education Level *</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
                 styles.dropdownSelector,
-                errors.educationLevel ? styles.inputError : null
+                errors.educationLevel ? styles.inputError : null,
               ]}
-              onPress={() => openPopup('education', 'Select Education Level')}
+              onPress={() => openPopup("education", "Select Education Level")}
             >
-              <Ionicons name="school-outline" size={20} color={errors.educationLevel ? "#ef4444" : "#db2777"} />
-              <Text style={[
-                styles.dropdownText, 
-                !preferences.educationLevel && styles.dropdownPlaceholder
-              ]}>
+              <Ionicons
+                name="school-outline"
+                size={20}
+                color={errors.educationLevel ? "#ef4444" : "#db2777"}
+              />
+              <Text
+                style={[
+                  styles.dropdownText,
+                  !preferences.educationLevel && styles.dropdownPlaceholder,
+                ]}
+              >
                 {preferences.educationLevel || "Select Education Level"}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
@@ -948,18 +1304,24 @@ const MatrimonialProfile = () => {
             {renderError(errors.educationLevel)}
 
             <Text style={styles.label}>Occupation Type *</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
                 styles.dropdownSelector,
-                errors.occupationType ? styles.inputError : null
+                errors.occupationType ? styles.inputError : null,
               ]}
-              onPress={() => openPopup('occupation', 'Select Occupation Type')}
+              onPress={() => openPopup("occupation", "Select Occupation Type")}
             >
-              <Ionicons name="briefcase-outline" size={20} color={errors.occupationType ? "#ef4444" : "#db2777"} />
-              <Text style={[
-                styles.dropdownText, 
-                !preferences.occupationType && styles.dropdownPlaceholder
-              ]}>
+              <Ionicons
+                name="briefcase-outline"
+                size={20}
+                color={errors.occupationType ? "#ef4444" : "#db2777"}
+              />
+              <Text
+                style={[
+                  styles.dropdownText,
+                  !preferences.occupationType && styles.dropdownPlaceholder,
+                ]}
+              >
                 {preferences.occupationType || "Select Occupation Type"}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
@@ -969,20 +1331,26 @@ const MatrimonialProfile = () => {
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Location & Background</Text>
-            
+
             <Text style={styles.label}>State *</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
                 styles.dropdownSelector,
-                errors.state ? styles.inputError : null
+                errors.state ? styles.inputError : null,
               ]}
-              onPress={() => openPopup('state', 'Select State')}
+              onPress={() => openPopup("state", "Select State")}
             >
-              <Ionicons name="location-outline" size={20} color={errors.state ? "#ef4444" : "#db2777"} />
-              <Text style={[
-                styles.dropdownText, 
-                !preferences.location.state && styles.dropdownPlaceholder
-              ]}>
+              <Ionicons
+                name="location-outline"
+                size={20}
+                color={errors.state ? "#ef4444" : "#db2777"}
+              />
+              <Text
+                style={[
+                  styles.dropdownText,
+                  !preferences.location.state && styles.dropdownPlaceholder,
+                ]}
+              >
                 {preferences.location.state || "Select State"}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
@@ -990,91 +1358,143 @@ const MatrimonialProfile = () => {
             {renderError(errors.state)}
 
             <Text style={styles.label}>City *</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
                 styles.dropdownSelector,
-                (!preferences.location.state && styles.disabledDropdown) || 
-                (errors.city && styles.inputError)
+                (!preferences.location.state && styles.disabledDropdown) ||
+                  (errors.city && styles.inputError),
               ]}
-              onPress={() => preferences.location.state ? openPopup('city', 'Select City') : null}
+              onPress={() =>
+                preferences.location.state
+                  ? openPopup("city", "Select City")
+                  : null
+              }
               disabled={!preferences.location.state}
             >
-              <Ionicons name="business-outline" size={20} color={
-                !preferences.location.state ? "#94a3b8" : 
-                errors.city ? "#ef4444" : "#db2777"
-              } />
-              <Text style={[
-                styles.dropdownText, 
-                !preferences.location.city && styles.dropdownPlaceholder,
-                !preferences.location.state && styles.disabledText
-              ]}>
-                {preferences.location.city || (preferences.location.state ? "Select City" : "Select State First")}
+              <Ionicons
+                name="business-outline"
+                size={20}
+                color={
+                  !preferences.location.state
+                    ? "#94a3b8"
+                    : errors.city
+                    ? "#ef4444"
+                    : "#db2777"
+                }
+              />
+              <Text
+                style={[
+                  styles.dropdownText,
+                  !preferences.location.city && styles.dropdownPlaceholder,
+                  !preferences.location.state && styles.disabledText,
+                ]}
+              >
+                {preferences.location.city ||
+                  (preferences.location.state
+                    ? "Select City"
+                    : "Select State First")}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color={preferences.location.state ? "#64748b" : "#94a3b8"} />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={preferences.location.state ? "#64748b" : "#94a3b8"}
+              />
             </TouchableOpacity>
             {renderError(errors.city)}
 
             <Text style={styles.label}>Religion *</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
                 styles.dropdownSelector,
-                errors.religion ? styles.inputError : null
+                errors.religion ? styles.inputError : null,
               ]}
-              onPress={() => openPopup('religion', 'Select Religion')}
+              onPress={() => openPopup("religion", "Select Religion")}
             >
-              <Ionicons name="planet-outline" size={20} color={errors.religion ? "#ef4444" : "#db2777"} />
-              <Text style={[
-                styles.dropdownText, 
-                !preferences.religion && styles.dropdownPlaceholder
-              ]}>
+              <Ionicons
+                name="planet-outline"
+                size={20}
+                color={errors.religion ? "#ef4444" : "#db2777"}
+              />
+              <Text
+                style={[
+                  styles.dropdownText,
+                  !preferences.religion && styles.dropdownPlaceholder,
+                ]}
+              >
                 {preferences.religion || "Select Religion"}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
             </TouchableOpacity>
             {renderError(errors.religion)}
 
-            <Text style={styles.label}>Caste {preferences.religion && '*'}</Text>
-            <TouchableOpacity 
+            <Text style={styles.label}>
+              Caste {preferences.religion && "*"}
+            </Text>
+            <TouchableOpacity
               style={[
                 styles.dropdownSelector,
                 (!preferences.religion && styles.disabledDropdown) ||
-                (errors.caste && styles.inputError)
+                  (errors.caste && styles.inputError),
               ]}
-              onPress={() => preferences.religion ? openPopup('caste', 'Select Caste') : null}
+              onPress={() =>
+                preferences.religion ? openPopup("caste", "Select Caste") : null
+              }
               disabled={!preferences.religion}
             >
-              <Ionicons name="people-outline" size={20} color={
-                !preferences.religion ? "#94a3b8" :
-                errors.caste ? "#ef4444" : "#db2777"
-              } />
-              <Text style={[
-                styles.dropdownText, 
-                !preferences.caste && styles.dropdownPlaceholder,
-                !preferences.religion && styles.disabledText
-              ]}>
-                {preferences.caste || (preferences.religion ? "Select Caste" : "Select Religion First")}
+              <Ionicons
+                name="people-outline"
+                size={20}
+                color={
+                  !preferences.religion
+                    ? "#94a3b8"
+                    : errors.caste
+                    ? "#ef4444"
+                    : "#db2777"
+                }
+              />
+              <Text
+                style={[
+                  styles.dropdownText,
+                  !preferences.caste && styles.dropdownPlaceholder,
+                  !preferences.religion && styles.disabledText,
+                ]}
+              >
+                {preferences.caste ||
+                  (preferences.religion
+                    ? "Select Caste"
+                    : "Select Religion First")}
               </Text>
-              <Ionicons name="chevron-forward" size={20} color={preferences.religion ? "#64748b" : "#94a3b8"} />
+              <Ionicons
+                name="chevron-forward"
+                size={20}
+                color={preferences.religion ? "#64748b" : "#94a3b8"}
+              />
             </TouchableOpacity>
             {renderError(errors.caste)}
           </View>
 
           <View style={styles.card}>
             <Text style={styles.sectionTitle}>Lifestyle</Text>
-            
+
             <Text style={styles.label}>Lifestyle Expectations *</Text>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={[
                 styles.dropdownSelector,
-                errors.lifestyle ? styles.inputError : null
+                errors.lifestyle ? styles.inputError : null,
               ]}
-              onPress={() => openPopup('lifestyle', 'Select Lifestyle')}
+              onPress={() => openPopup("lifestyle", "Select Lifestyle")}
             >
-              <Ionicons name="restaurant-outline" size={20} color={errors.lifestyle ? "#ef4444" : "#db2777"} />
-              <Text style={[
-                styles.dropdownText, 
-                !preferences.lifestyle && styles.dropdownPlaceholder
-              ]}>
+              <Ionicons
+                name="restaurant-outline"
+                size={20}
+                color={errors.lifestyle ? "#ef4444" : "#db2777"}
+              />
+              <Text
+                style={[
+                  styles.dropdownText,
+                  !preferences.lifestyle && styles.dropdownPlaceholder,
+                ]}
+              >
                 {preferences.lifestyle || "Select Lifestyle"}
               </Text>
               <Ionicons name="chevron-forward" size={20} color="#64748b" />
@@ -1082,44 +1502,49 @@ const MatrimonialProfile = () => {
             {renderError(errors.lifestyle)}
           </View>
 
-          <TouchableOpacity 
+          <TouchableOpacity
             style={styles.button}
             onPress={handleSavePreferences}
             activeOpacity={0.8}
           >
-            <Ionicons name="save-outline" size={20} color="#fff" style={styles.buttonIcon} />
-            <Text style={styles.buttonText}>Save Preferences</Text>
+            <Ionicons
+              name="save-outline"
+              size={20}
+              color="#fff"
+              style={styles.buttonIcon}
+            />
+            <Text style={styles.buttonText}>
+              {isEditMode ? "Update Preferences" : "Save Preferences"}
+            </Text>
           </TouchableOpacity>
 
           <View style={styles.footer}>
             <Text style={styles.footerText}>
               Your preferences help us find your perfect match
             </Text>
-            <Text style={styles.requiredText}>
-              * Required fields
-            </Text>
+            <Text style={styles.requiredText}>* Required fields</Text>
           </View>
         </ScrollView>
 
         <Modal
           transparent={true}
           visible={popupVisible}
-          animationType="none" 
+          animationType="none"
           onRequestClose={() => closePopup()}
         >
           <View style={styles.modalContainer}>
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.modalOverlay}
               activeOpacity={1}
               onPress={() => closePopup()}
             />
-            <Animated.View 
+            <Animated.View
               style={[
                 styles.popupCard,
-                { 
+                {
                   opacity: fadeAnim,
-                  transform: [{ scale: scaleAnim }] 
-                }
+                  transform: [{ scale: scaleAnim }],
+                },
               ]}
             >
               <View style={styles.popupHeader}>
@@ -1128,32 +1553,49 @@ const MatrimonialProfile = () => {
                   <Ionicons name="close" size={24} color="#334155" />
                 </TouchableOpacity>
               </View>
-              
+
               <FlatList
                 data={dropdownItems}
                 keyExtractor={(item) => item}
                 renderItem={({ item }) => (
-                  <TouchableOpacity 
+                  <TouchableOpacity
                     style={styles.popupItem}
                     onPress={() => handleSelect(item)}
                   >
                     <Text style={styles.popupItemText}>{item}</Text>
-                    {(
-                      (activeDropdown === 'sex' && preferences.sex === item) ||
-                      (activeDropdown === 'education' && preferences.educationLevel === item) ||
-                      (activeDropdown === 'occupation' && preferences.occupationType === item) ||
-                      (activeDropdown === 'state' && preferences.location.state === item) ||
-                      (activeDropdown === 'city' && preferences.location.city === item) ||
-                      (activeDropdown === 'religion' && preferences.religion === item) ||
-                      (activeDropdown === 'caste' && preferences.caste === item) ||
-                      (activeDropdown === 'lifestyle' && preferences.lifestyle === item) ||
-                      (activeDropdown === 'age' && minMaxType === 'min' && preferences.ageRange.min === item) ||
-                      (activeDropdown === 'age' && minMaxType === 'max' && preferences.ageRange.max === item) ||
-                      (activeDropdown === 'height' && minMaxType === 'min' && preferences.heightRange.min === item.split(' ')[0]) ||
-                      (activeDropdown === 'height' && minMaxType === 'max' && preferences.heightRange.max === item.split(' ')[0]) ||
-                      (activeDropdown === 'weight' && minMaxType === 'min' && preferences.weight.min === item.split(' ')[0]) ||
-                      (activeDropdown === 'weight' && minMaxType === 'max' && preferences.weight.max === item.split(' ')[0])
-                    ) && (
+                    {((activeDropdown === "sex" && preferences.sex === item) ||
+                      (activeDropdown === "education" &&
+                        preferences.educationLevel === item) ||
+                      (activeDropdown === "occupation" &&
+                        preferences.occupationType === item) ||
+                      (activeDropdown === "state" &&
+                        preferences.location.state === item) ||
+                      (activeDropdown === "city" &&
+                        preferences.location.city === item) ||
+                      (activeDropdown === "religion" &&
+                        preferences.religion === item) ||
+                      (activeDropdown === "caste" &&
+                        preferences.caste === item) ||
+                      (activeDropdown === "lifestyle" &&
+                        preferences.lifestyle === item) ||
+                      (activeDropdown === "age" &&
+                        minMaxType === "min" &&
+                        preferences.ageRange.min === item) ||
+                      (activeDropdown === "age" &&
+                        minMaxType === "max" &&
+                        preferences.ageRange.max === item) ||
+                      (activeDropdown === "height" &&
+                        minMaxType === "min" &&
+                        preferences.heightRange.min === item.split(" ")[0]) ||
+                      (activeDropdown === "height" &&
+                        minMaxType === "max" &&
+                        preferences.heightRange.max === item.split(" ")[0]) ||
+                      (activeDropdown === "weight" &&
+                        minMaxType === "min" &&
+                        preferences.weight.min === item.split(" ")[0]) ||
+                      (activeDropdown === "weight" &&
+                        minMaxType === "max" &&
+                        preferences.weight.max === item.split(" ")[0])) && (
                       <Ionicons name="checkmark" size={20} color="#db2777" />
                     )}
                   </TouchableOpacity>
@@ -1161,8 +1603,8 @@ const MatrimonialProfile = () => {
                 style={styles.popupList}
                 showsVerticalScrollIndicator={false}
               />
-              
-              <TouchableOpacity 
+
+              <TouchableOpacity
                 style={styles.popupCloseButton}
                 onPress={() => closePopup()}
               >
@@ -1176,32 +1618,32 @@ const MatrimonialProfile = () => {
   );
 };
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#fdf2f8', 
+    backgroundColor: "#fdf2f8",
     padding: 16,
   },
   header: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginBottom: 16,
     paddingVertical: 8,
   },
   heading: {
     fontSize: 24,
-    fontWeight: 'bold',
+    fontWeight: "bold",
     marginLeft: 8,
-    color: '#db2777',
+    color: "#db2777",
   },
   card: {
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
     padding: 16,
     marginBottom: 16,
-    shadowColor: '#000',
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 2 },
     shadowOpacity: 0.05,
     shadowRadius: 8,
@@ -1209,42 +1651,42 @@ const styles = StyleSheet.create({
   },
   sectionTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: '#334155',
+    fontWeight: "700",
+    color: "#334155",
     marginBottom: 16,
   },
   labelRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    width: '100%',
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    width: "100%",
   },
   label: {
     fontSize: 14,
-    fontWeight: '500',
-    color: '#374151',
+    fontWeight: "500",
+    color: "#374151",
   },
   unitToggle: {
     padding: 4,
   },
   unitToggleText: {
     fontSize: 12,
-    color: '#db2777',
-    fontWeight: '500',
+    color: "#db2777",
+    fontWeight: "500",
   },
   inputGroup: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
     borderRadius: 12,
     paddingHorizontal: 12,
     marginBottom: 6,
     marginTop: 4,
   },
   rangeContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     marginBottom: 6,
     marginTop: 4,
   },
@@ -1254,18 +1696,18 @@ const styles = StyleSheet.create({
   rangeText: {
     marginHorizontal: 10,
     fontSize: 15,
-    color: '#64748b',
+    color: "#64748b",
   },
   input: {
     flex: 1,
     padding: 12,
     fontSize: 16,
-    color: '#334155',
+    color: "#334155",
   },
   dropdownSelector: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#f1f5f9',
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: "#f1f5f9",
     borderRadius: 12,
     paddingHorizontal: 12,
     paddingVertical: 14,
@@ -1275,46 +1717,46 @@ const styles = StyleSheet.create({
   dropdownText: {
     flex: 1,
     fontSize: 16,
-    color: '#334155',
+    color: "#334155",
     marginLeft: 8,
   },
   dropdownPlaceholder: {
-    color: '#94a3b8',
+    color: "#94a3b8",
   },
   disabledDropdown: {
-    backgroundColor: '#f1f5f9',
+    backgroundColor: "#f1f5f9",
     opacity: 0.7,
   },
   disabledText: {
-    color: '#94a3b8',
+    color: "#94a3b8",
   },
   inputError: {
-    borderColor: '#ef4444',
+    borderColor: "#ef4444",
     borderWidth: 1.5,
-    backgroundColor: '#fef2f2',
+    backgroundColor: "#fef2f2",
   },
   errorContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
+    flexDirection: "row",
+    alignItems: "center",
     marginTop: 2,
     marginBottom: 8,
     paddingHorizontal: 4,
   },
   errorText: {
-    color: '#ef4444',
+    color: "#ef4444",
     fontSize: 12,
     marginLeft: 4,
     flex: 1,
   },
   button: {
-    backgroundColor: '#db2777',
+    backgroundColor: "#db2777",
     paddingVertical: 16,
     borderRadius: 12,
-    flexDirection: 'row',
-    justifyContent: 'center',
-    alignItems: 'center',
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
     marginVertical: 16,
-    shadowColor: '#db2777',
+    shadowColor: "#db2777",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.2,
     shadowRadius: 8,
@@ -1324,95 +1766,95 @@ const styles = StyleSheet.create({
     marginRight: 8,
   },
   buttonText: {
-    color: '#fff',
+    color: "#fff",
     fontSize: 16,
-    fontWeight: '600',
+    fontWeight: "600",
   },
   footer: {
-    alignItems: 'center',
+    alignItems: "center",
     marginBottom: 40,
   },
   footerText: {
     fontSize: 14,
-    color: '#94a3b8',
-    textAlign: 'center',
+    color: "#94a3b8",
+    textAlign: "center",
     marginBottom: 8,
   },
   requiredText: {
     fontSize: 12,
-    color: '#ef4444',
-    textAlign: 'center',
-    fontStyle: 'italic',
+    color: "#ef4444",
+    textAlign: "center",
+    fontStyle: "italic",
   },
   modalContainer: {
     flex: 1,
-    justifyContent: 'center',
-    alignItems: 'center',
+    justifyContent: "center",
+    alignItems: "center",
   },
   modalOverlay: {
-    position: 'absolute',
+    position: "absolute",
     top: 0,
     left: 0,
     right: 0,
     bottom: 0,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
+    backgroundColor: "rgba(0, 0, 0, 0.5)",
   },
   popupCard: {
     width: width * 0.85,
     maxWidth: 400,
-    backgroundColor: '#fff',
+    backgroundColor: "#fff",
     borderRadius: 16,
-    overflow: 'hidden',
-    shadowColor: '#000',
+    overflow: "hidden",
+    shadowColor: "#000",
     shadowOffset: { width: 0, height: 10 },
     shadowOpacity: 0.1,
     shadowRadius: 20,
     elevation: 10,
-    maxHeight: height * 0.7, 
+    maxHeight: height * 0.7,
   },
   popupHeader: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingHorizontal: 20,
     paddingVertical: 16,
     borderBottomWidth: 1,
-    borderBottomColor: '#e2e8f0',
-    backgroundColor: '#f8fafc',
+    borderBottomColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
   },
   popupTitle: {
     fontSize: 18,
-    fontWeight: '600',
-    color: '#334155',
+    fontWeight: "600",
+    color: "#334155",
   },
   popupList: {
-    maxHeight: height * 0.5, 
+    maxHeight: height * 0.5,
   },
   popupItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
     paddingVertical: 14,
     paddingHorizontal: 20,
     borderBottomWidth: 1,
-    borderBottomColor: '#f1f5f9',
+    borderBottomColor: "#f1f5f9",
   },
   popupItemText: {
     fontSize: 16,
-    color: '#334155',
+    color: "#334155",
   },
   popupCloseButton: {
     padding: 16,
-    alignItems: 'center',
+    alignItems: "center",
     borderTopWidth: 1,
-    borderTopColor: '#e2e8f0',
-    backgroundColor: '#f8fafc',
+    borderTopColor: "#e2e8f0",
+    backgroundColor: "#f8fafc",
   },
   popupCloseText: {
     fontSize: 16,
-    color: '#64748b',
-    fontWeight: '500',
-  }
+    color: "#64748b",
+    fontWeight: "500",
+  },
 });
 
 export default MatrimonialProfile;

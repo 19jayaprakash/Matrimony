@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
+import { router } from 'expo-router';
 import {
   Activity,
   ChevronsRight,
@@ -12,7 +13,7 @@ import {
   UtensilsCrossed,
   Wine
 } from 'lucide-react-native';
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   Alert,
   Platform,
@@ -24,10 +25,9 @@ import {
   View
 } from 'react-native';
  
-import { router } from 'expo-router';
-
-
-
+ 
+ 
+ 
   const SelectableTagList = ({
   title,
   icon,
@@ -38,7 +38,7 @@ import { router } from 'expo-router';
 }) => {
   const [showAll, setShowAll] = useState(false);
   const displayedItems = showAll ? items : items.slice(0, 10);
-
+ 
   return (
     <FormSection title={title} icon={icon}>
       <View className="flex-row flex-wrap mb-4 gap-2">
@@ -46,7 +46,7 @@ import { router } from 'expo-router';
           const isSelected = selectedItems.includes(item);
           const backgroundColor = isSelected ? 'bg-pink-700' : 'bg-white';
           const textColor = isSelected ? 'text-white' : 'text-black';
-
+ 
           return (
             item ?
             <TouchableOpacity
@@ -62,7 +62,7 @@ import { router } from 'expo-router';
           );
         })}
       </View>
-
+ 
       {items.length > 10 && (
         <TouchableOpacity className="flex items-center justify-center" onPress={() => setShowAll(!showAll)}>
           <Text className="text-pink-600 underline ">
@@ -73,15 +73,15 @@ import { router } from 'expo-router';
     </FormSection>
   );
 };
-
-
+ 
+ 
 // Form Section Component
   const FormSection = ({ title, icon, children }) => (
-    <View style={{ 
-      width: '100%', 
-      backgroundColor: 'white', 
-      borderRadius: 12, 
-      padding: 16, 
+    <View style={{
+      width: '100%',
+      backgroundColor: 'white',
+      borderRadius: 12,
+      padding: 16,
       marginBottom: 24,
       shadowColor: '#000',
       shadowOffset: { width: 0, height: 2 },
@@ -90,11 +90,11 @@ import { router } from 'expo-router';
       elevation: 3
     }}>
       <View style={{ flexDirection: 'row', alignItems: 'center', marginBottom: 16 }}>
-        <View style={{ 
-          backgroundColor: '#FCE7F3', 
-          borderRadius: 9999, 
-          padding: 8, 
-          marginRight: 12 
+        <View style={{
+          backgroundColor: '#FCE7F3',
+          borderRadius: 9999,
+          padding: 8,
+          marginRight: 12
         }}>
           {icon}
         </View>
@@ -105,42 +105,233 @@ import { router } from 'expo-router';
       {children}
     </View>
   );
-
-
+ 
+ 
 const MatrimonialProfile = () => {
   const { width } = useWindowDimensions();
   const isWeb = Platform.OS === 'web';
   const isMobile = width < 768;
+  const[isUpdate,setIsUpdate] = useState(false);
+  const[hobbies,setHobbies] = useState([]);
+  const[travelPreferences,setTravelPreferences] = useState([]);
+  const[musicMovieTastes,setMusicMovieTastes] = useState([]);
+  const[fitnessActivities,setFitnessActivities] = useState([]);
+  const[socialCauses,setSocialCauses] = useState([]);
+  const[dietPreference,setDietPreference] = useState([]);
+  const[habits,setHabits] = useState([]);
+  const[cuisinePreference,setCuisinePreference] = useState([]);
+  const[knownLanguages,setKnownLanguages] = useState([]);
 
-  const[formData, setFormData] = useState({})
-  const[dietPreferences,setDietPreferences] = useState([]);
+  useEffect(()=>{
+    async function fetchDietPreferences() {
+      await fetch(`http://stu.globalknowledgetech.com:5003/Interests/user-interests`,{
+        method: 'GET',
+        headers: {
+          'Authorization': `Bearer ${await AsyncStorage.getItem("token")}`,
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        // setDietPreferences(data);
+        setSelectedCause(data.socialCausesOfInterest || []);
+        setSelectedCuisines(data.cuisinePreferences || []);
+        setSelectedDiets(data.dietPreferences || []);
+        setSelectedFitness(data.sportsAndFitness || []);
+        setSelectedHobbies(data.hobbiesAndInterests || []);
+        setSelectedLanguages(data.languagesKnown || []);
+        setSelectedMusic(data.musicOrMovieTastes || []);
+        setSelectedTravel(data.travelPreferences || []);
+        setSelectedHabits(data.habits || []);
+        setIsUpdate(true);
+        console.log('Diet Preferences:', data);
+      })
+      .catch((error) => {
+        console.error('Error fetching diet preferences:', error);
+      });
+    }
+    fetchDietPreferences();
+  },[]);
+ 
+ 
+  useEffect(()=>{
+    async function fetchDietPreferences() {
+      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=diet_preferences`,{
+        method: 'GET',
+        headers: {
+          'access-control-allow-origin': '*',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        setDietPreference(data.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching diet preferences:', error);
+      });
+    }
+    fetchDietPreferences();
+ 
+  },[]);
 
+  useEffect(()=>{
+    async function fetchHobbies() {
+      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=hobby`,{
+        method: 'GET',
+        headers: {
+          'access-control-allow-origin': '*',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        setHobbies(data.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching diet preferences:', error);
+      });
+    }
+    fetchHobbies();
+ 
+  },[]);
 
-  // useEffect(()=>{
-  //   async function fetchDietPreferences() {
-  //     await fetch(`http://stu.globalknowledgetech.com:5003/utility/diet-preferences`,{
-  //       method: 'GET',
-  //       headers: {
-  //         'access-control-allow-origin': '*',
-  //       },
-  //     })
-  //     .then((response) => response.json())
-  //     .then((data) => {
-  //       setDietPreferences(data);
-  //     })
-  //     .catch((error) => {
-  //       console.error('Error fetching diet preferences:', error);
-  //     });
-  //   }
-  //   fetchDietPreferences();
-
-  // },[]);
-
+  useEffect(()=>{
+    async function fetchSocialCauses() {
+      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=social_cause`,{
+        method: 'GET',
+        headers: {
+          'access-control-allow-origin': '*',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        setSocialCauses(data.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching diet preferences:', error);
+      });
+    }
+    fetchSocialCauses();
+ 
+  },[]);
+  useEffect(()=>{
+    async function fetchTravelPreferences() {
+      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=travel_preference`,{
+        method: 'GET',
+        headers: {
+          'access-control-allow-origin': '*',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        setTravelPreferences(data.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching diet preferences:', error);
+      });
+    }
+    fetchTravelPreferences();
+ 
+  },[]);
+  useEffect(()=>{
+    async function fetchMusicMoviesTastes() {
+      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=music_movie_taste`,{
+        method: 'GET',
+        headers: {
+          'access-control-allow-origin': '*',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        setMusicMovieTastes(data.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching diet preferences:', error);
+      });
+    }
+    fetchMusicMoviesTastes();
+ 
+  },[]);
+  useEffect(()=>{
+    async function fetchFitnessActivities() {
+      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=games_play`,{
+        method: 'GET',
+        headers: {
+          'access-control-allow-origin': '*',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        setFitnessActivities(data.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching diet preferences:', error);
+      });
+    }
+    fetchFitnessActivities();
+ 
+  },[]);
+  useEffect(()=>{
+    async function fetchDietPreferences() {
+      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=habits`,{
+        method: 'GET',
+        headers: {
+          'access-control-allow-origin': '*',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        setHabits(data.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching diet preferences:', error);
+      });
+    }
+    fetchDietPreferences();
+ 
+  },[]);
+  useEffect(()=>{
+    async function fetchDietPreferences() {
+      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=cuisine_preference`,{
+        method: 'GET',
+        headers: {
+          'access-control-allow-origin': '*',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        setCuisinePreference(data.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching diet preferences:', error);
+      });
+    }
+    fetchDietPreferences();
+ 
+  },[]);
+  useEffect(()=>{
+    async function fetchDietPreferences() {
+      await fetch(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=language`,{
+        method: 'GET',
+        headers: {
+          'access-control-allow-origin': '*',
+        },
+      })
+      .then((response) => response.json())
+      .then((data) => {
+        setKnownLanguages(data.data);
+      })
+      .catch((error) => {
+        console.error('Error fetching diet preferences:', error);
+      });
+    }
+    fetchDietPreferences();
+ 
+  },[]);
+ 
   // Form submission handler
   const handleSubmit = async() => {
-
+ 
     const token = await AsyncStorage.getItem("token");
-
+ 
     const json = JSON.stringify({
   "hobbiesAndInterests": selectedHobbies,
   "travelPreferences": selectedTravel,
@@ -160,103 +351,137 @@ const MatrimonialProfile = () => {
       }
     })
     .then(res =>{
-      
+      if(res.status === 201){
         router.push("/profile/PartnerPreference");
-      
-      
-    })
-    .catch(err =>{
-      Alert("Network Error");
+      }
+     
     })
   };
 
-  const hobbies = [
-  'Reading', 'Cooking', 'Gardening', 'Painting', 'Dancing',
-  'Singing', 'Photography', 'Drawing', 'Crafting', 'Blogging',
-];
-
-const travelPreferences = [
-  'Love to travel frequently',
-  'Occasional trips',
-  'Prefer short getaways',
-  'Prefer staying at home',
-  'Prefer international travel',
-  'Prefer domestic travel',
-  'Spiritual/religious trips',
-  'Nature/adventure trips',
-];
-
-const musicMovieTastes = [
-  'Bollywood', 'Classical', 'Pop', 'Rock', 'Jazz',
-  'Devotional', 'Romantic movies', 'Action movies',
-  'Comedy', 'Drama', 'Thriller', 'Art/indie films',
-];
-
-const fitnessActivities = [
-  'Gym/Workout', 'Yoga', 'Running', 'Cycling', 'Swimming',
-  'Cricket', 'Football', 'Badminton', 'Tennis', 'Hiking',
-];
-
-const socialCauses = [
-  'Environment conservation', 'Animal welfare', 'Women empowerment',
-  'Child education', 'Elderly care', 'LGBTQ+ rights',
-  'Mental health awareness', 'Rural development',
-  'Health and wellness', 'Community service',
-];
-
-const dietPreference = [
-  "Vegetarian (Veg)",
-  "Non-Vegetarian (Non-Veg)",
-  "Vegan",
-  "Jain",
-  "Eggetarian",
-  "Pescatarian",
-  "Lacto-Vegetarian",
-  "Ovo-Vegetarian",
-  "Kosher",
-  "Halal",
-  "No Preference / Any"
-]
-
-const habits = [
-  "Non-Smoker",
-  "Occasional Smoker",
-  "Regular Smoker",
-  "Non-Drinker",
-  "Occasional Drinker",
-  "Regular Drinker",
-  "No Habits / None"
-]
-
-const cuisinePreference = [
-  // Indian Regional Cuisines
-  			"North Indian","South Indian","Gujarati","Rajasthani","Bengali","Punjabi","Maharashtrian",
-  			"Andhra","Kerala","Tamil","Kashmiri","Goan","Oriya (Odia)",
-		// International Cuisines
-  			"Chinese","Thai","Italian","Mexican","Continental","American","Mediterranean","Japanese",
-  			"Korean","Lebanese","French","Spanish",
-		// Dietary Styles / Lifestyle-Based
-  			"Vegetarian","Eggetarian","Non-Vegetarian","Vegan","Jain Food","Satvik Food",
-			"Gluten-free","Keto-Friendly","Organic Food","Ayurvedic Food",
-		 // Other Popular Types
-  			"Street Food","Fast Food","BBQ / Grilled","Seafood","Fusion Cuisine",
-			"Homemade / Traditional","Raw Food"
-]
-
-const knownLanguages = [
-  // Indian Languages
-  		"Hindi","English","Tamil","Telugu","Kannada","Malayalam","Marathi","Gujarati","Bengali","Punjabi",
-  		"Odia","Assamese","Konkani","Sanskrit","Urdu","Sindhi","Manipuri","Maithili","Rajasthani","Bodo",
-  		"Santhali","Kashmiri","Dogri","Tulu",
-
-		// Foreign / International Languages
-  		"Arabic","French","German","Spanish","Portuguese","Russian","Japanese","Chinese (Mandarin)",
-  		"Korean","Italian","Turkish","Persian (Farsi)","Nepali","Sinhala","Thai","Burmese","Hebrew",
-  		"Swahili","Dutch","Greek","Hungarian","Czech","Polish","Romanian",
-]
+  const handleUpdate = async() => {
+ 
+    const token = await AsyncStorage.getItem("token");
+ 
+    const json = JSON.stringify({
+  "hobbiesAndInterests": selectedHobbies,
+  "travelPreferences": selectedTravel,
+  "musicOrMovieTastes": selectedMusic,
+  "sportsAndFitness": selectedFitness,
+  "socialCausesOfInterest": selectedCause,
+  "languagesKnown": selectedLanguages,
+  "cuisinePreferences": selectedCuisines,
+  "habits": selectedHabits,
+  "dietPreferences": selectedDiets,
+})
+    console.log('Form Data:', json);
+    await axios.post(`http://stu.globalknowledgetech.com:5003/Interests/update-user-interests`, json,{
+      headers : {
+        'Content-Type': 'application/json',
+        "Authorization" : `Bearer ${token}`,
+      }
+    })
+    .then(res =>{
+      if(res.status === 200){
+        router.back();
+      }
+     
+    })
+    .catch(err =>{
+      Alert.alert("Error", "Something went wrong while updating your profile. Please try again later.");
+      console.error("Error updating profile:", err);
+    })
+  };
 
   
 
+ 
+//   const hobbies = [
+//   'Reading', 'Cooking', 'Gardening', 'Painting', 'Dancing',
+//   'Singing', 'Photography', 'Drawing', 'Crafting', 'Blogging',
+// ];
+ 
+// const travelPreferences = [
+//   'Love to travel frequently',
+//   'Occasional trips',
+//   'Prefer short getaways',
+//   'Prefer staying at home',
+//   'Prefer international travel',
+//   'Prefer domestic travel',
+//   'Spiritual/religious trips',
+//   'Nature/adventure trips',
+// ];
+ 
+// const musicMovieTastes = [
+//   'Bollywood', 'Classical', 'Pop', 'Rock', 'Jazz',
+//   'Devotional', 'Romantic movies', 'Action movies',
+//   'Comedy', 'Drama', 'Thriller', 'Art/indie films',
+// ];
+ 
+// const fitnessActivities = [
+//   'Gym/Workout', 'Yoga', 'Running', 'Cycling', 'Swimming',
+//   'Cricket', 'Football', 'Badminton', 'Tennis', 'Hiking',
+// ];
+ 
+// const socialCauses = [
+//   'Environment conservation', 'Animal welfare', 'Women empowerment',
+//   'Child education', 'Elderly care', 'LGBTQ+ rights',
+//   'Mental health awareness', 'Rural development',
+//   'Health and wellness', 'Community service',
+// ];
+ 
+// const dietPreference = [
+//   "Vegetarian (Veg)",
+//   "Non-Vegetarian (Non-Veg)",
+//   "Vegan",
+//   "Jain",
+//   "Eggetarian",
+//   "Pescatarian",
+//   "Lacto-Vegetarian",
+//   "Ovo-Vegetarian",
+//   "Kosher",
+//   "Halal",
+//   "No Preference / Any"
+// ]
+ 
+// const habits = [
+//   "Non-Smoker",
+//   "Occasional Smoker",
+//   "Regular Smoker",
+//   "Non-Drinker",
+//   "Occasional Drinker",
+//   "Regular Drinker",
+//   "No Habits / None"
+// ]
+ 
+// const cuisinePreference = [
+//   // Indian Regional Cuisines
+//         "North Indian","South Indian","Gujarati","Rajasthani","Bengali","Punjabi","Maharashtrian",
+//         "Andhra","Kerala","Tamil","Kashmiri","Goan","Oriya (Odia)",
+//     // International Cuisines
+//         "Chinese","Thai","Italian","Mexican","Continental","American","Mediterranean","Japanese",
+//         "Korean","Lebanese","French","Spanish",
+//     // Dietary Styles / Lifestyle-Based
+//         "Vegetarian","Eggetarian","Non-Vegetarian","Vegan","Jain Food","Satvik Food",
+//       "Gluten-free","Keto-Friendly","Organic Food","Ayurvedic Food",
+//      // Other Popular Types
+//         "Street Food","Fast Food","BBQ / Grilled","Seafood","Fusion Cuisine",
+//       "Homemade / Traditional","Raw Food"
+// ]
+ 
+// const knownLanguages = [
+//   // Indian Languages
+//       "Hindi","English","Tamil","Telugu","Kannada","Malayalam","Marathi","Gujarati","Bengali","Punjabi",
+//       "Odia","Assamese","Konkani","Sanskrit","Urdu","Sindhi","Manipuri","Maithili","Rajasthani","Bodo",
+//       "Santhali","Kashmiri","Dogri","Tulu",
+ 
+//     // Foreign / International Languages
+//       "Arabic","French","German","Spanish","Portuguese","Russian","Japanese","Chinese (Mandarin)",
+//       "Korean","Italian","Turkish","Persian (Farsi)","Nepali","Sinhala","Thai","Burmese","Hebrew",
+//       "Swahili","Dutch","Greek","Hungarian","Czech","Polish","Romanian",
+// ]
+ 
+ 
+ 
   const [selectedTravel, setSelectedTravel] = useState([]);
   const [selectedMusic, setSelectedMusic] = useState([]);
   const [selectedFitness, setSelectedFitness] = useState([]);
@@ -266,8 +491,8 @@ const knownLanguages = [
   const[selectedHabits, setSelectedHabits] = useState([]);
   const[selectedCuisines, setSelectedCuisines] = useState([]);
   const[selectedLanguages, setSelectedLanguages] = useState([]);
-
-
+ 
+ 
   const handlePress = useCallback((item, variable, setVariable) => {
   if (variable.includes(item)) {
     setVariable(variable.filter((i) => i !== item));
@@ -275,14 +500,14 @@ const knownLanguages = [
     setVariable([...variable, item]);
   }
 }, []);
-
-
-  
+ 
+ 
+ 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
       {/* Header */}
-      <View style={{ 
-        width: '100%', 
+      <View style={{
+        width: '100%',
         backgroundColor: '#EC4899',
         paddingVertical: 24,
         shadowColor: '#000',
@@ -291,17 +516,17 @@ const knownLanguages = [
         shadowRadius: 4,
         elevation: 3
       }}>
-        <Text style={{ 
-          color: 'white', 
-          fontSize: 25, 
-          fontWeight: 'bold', 
-          textAlign: 'center' 
+        <Text style={{
+          color: 'white',
+          fontSize: 25,
+          fontWeight: 'bold',
+          textAlign: 'center'
         }}>
-         Create Profile
+        {isUpdate ? "Update" : "Create"} Profile
         </Text>
-        <Text style={{ 
-          color: 'white', 
-          textAlign: 'center', 
+        <Text style={{
+          color: 'white',
+          textAlign: 'center',
           marginTop: 6,
           opacity: 0.9,
           fontSize:18
@@ -309,13 +534,13 @@ const knownLanguages = [
           Find your perfect match by completing your profile
         </Text>
       </View>
-
+ 
       <ScrollView style={{ flex: 1, backgroundColor: '#F3F4F6' }}>
-        <View style={isWeb && !isMobile ? 
-          { maxWidth: 768, marginLeft: 'auto', marginRight: 'auto', padding: 24 } : 
+        <View style={isWeb && !isMobile ?
+          { maxWidth: 768, marginLeft: 'auto', marginRight: 'auto', padding: 24 } :
           { width: '100%', padding: 16 }
         }>
-          
+         
           {/* Hobbies/Interests */}
           <SelectableTagList
             title="Hobbies & Interests"
@@ -325,7 +550,7 @@ const knownLanguages = [
             setSelectedItems={setSelectedHobbies}
             handlePress={handlePress}
           />
-
+ 
           {/* Travel Preferences */}
           <SelectableTagList
             title="Travel Preferences"
@@ -335,7 +560,7 @@ const knownLanguages = [
             setSelectedItems={setSelectedTravel}
             handlePress={handlePress}
           />
-
+ 
           {/* Music / Movies Tastes */}
           <SelectableTagList
             title="Music / Movies Tastes"
@@ -345,7 +570,7 @@ const knownLanguages = [
             setSelectedItems={setSelectedMusic}
             handlePress={handlePress}
           />
-
+ 
           {/* Sports and Fitness Activities */}
           <SelectableTagList
             title="Sports and Fitness Activities"
@@ -355,7 +580,7 @@ const knownLanguages = [
             setSelectedItems={setSelectedFitness}
             handlePress={handlePress}
           />
-
+ 
           {/* Social causes of interest */}
           <SelectableTagList
             title="Social causes of interest"
@@ -365,7 +590,7 @@ const knownLanguages = [
             setSelectedItems={setSelectedCause}
             handlePress={handlePress}
           />
-
+ 
           {/* Habits */}
           <SelectableTagList
             title="Habits"
@@ -375,7 +600,7 @@ const knownLanguages = [
             setSelectedItems={setSelectedHabits}
             handlePress={handlePress}
           />
-
+ 
           {/* Diet Preferences */}
           <SelectableTagList
             title="Diet Preferences"
@@ -385,7 +610,7 @@ const knownLanguages = [
             setSelectedItems={setSelectedDiets}
             handlePress={handlePress}
           />
-
+ 
           {/* Cuisine Preference */}
           <SelectableTagList
             title="Cuisine Preferences"
@@ -395,7 +620,7 @@ const knownLanguages = [
             setSelectedItems={setSelectedCuisines}
             handlePress={handlePress}
           />
-
+ 
           {/* Languages Known */}
           <SelectableTagList
             title="Languages Known"
@@ -406,11 +631,11 @@ const knownLanguages = [
             }
             handlePress={handlePress}
           />
-
-          
+ 
+         
           {/* Submit Button */}
           <TouchableOpacity
-            style={{ 
+            style={{
               backgroundColor: '#DB2777',
               paddingVertical: 16,
               borderRadius: 8,
@@ -422,13 +647,22 @@ const knownLanguages = [
               shadowRadius: 4,
               elevation: 3
             }}
-            onPress={handleSubmit}
+            onPress={isUpdate ? handleUpdate : handleSubmit}
           >
             <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+              {isUpdate ? 
+                <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 20 }}>
+                Update
+              </Text>
+               :
+                <>
               <Text style={{ color: 'white', fontWeight: 'bold', fontSize: 20 }}>
                 Next
               </Text>
               <ChevronsRight size={24} color="white" style={{ marginLeft: 8 }} />
+              </>
+              
+}         
             </View>
           </TouchableOpacity>
         </View>
@@ -436,5 +670,5 @@ const knownLanguages = [
     </SafeAreaView>
   );
 };
-
+ 
 export default MatrimonialProfile;
