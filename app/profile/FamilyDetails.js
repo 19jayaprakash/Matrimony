@@ -97,9 +97,8 @@ const isEditMode = isEdit === 'true'; // Convert string to boolean
   const [familyType, setfamilyType] = useState([]);
   const [familyValues, setfamilyValues] = useState([]);
   const [maritalStatus, setmaritalStatus] = useState([]);
-  const [occupation, setOccupations]=useState([]);
   const [isLoading, setIsLoading] = useState(false);
- 
+const [occupation,setOccupations]=useState([])
   // Fetch existing family details for edit mode
   const fetchFamilyDetails = async () => {
     if (!isEditMode) return;
@@ -107,14 +106,13 @@ const isEditMode = isEdit === 'true'; // Convert string to boolean
     setIsLoading(true);
     try {
       const token = await AsyncStorage.getItem('token');
-      const response = await axiosPublic.get('http://stu.globalknowledgetech.com:5003/family/family-details', {
+      const response = await axiosPublic.get('/family/family-details', {
         headers: {
           Authorization: `Bearer ${token}`
         }
       });
      
       const result =  response.data;
-      console.log('Fetched family details:', result);
      
       if (result) {
         const familyData = result;
@@ -155,7 +153,7 @@ const isEditMode = isEdit === 'true'; // Convert string to boolean
   }
     const fetchUtilData = async (utilHead, setStateFn) => {
       try {
-        const response = await axiosPublic.get(`http://stu.globalknowledgetech.com:5003/utility/utilHead?utilHead=${utilHead}`);
+        const response = await axiosPublic.get(`/utility/utilHead?utilHead=${utilHead}`);
         const data =  response.data;
         if (data) setStateFn(data.data);
       } catch (err) {
@@ -165,8 +163,8 @@ const isEditMode = isEdit === 'true'; // Convert string to boolean
  
     fetchUtilData('family_type', setfamilyType);
     fetchUtilData('family_values', setfamilyValues);
-    fetchUtilData('occupation',setOccupations)
     fetchUtilData('sibling_marital_status', setmaritalStatus);
+    fetchUtilData('occupation',setOccupations)
    
     // Fetch existing data if in edit mode
   }, [isEditMode]);
@@ -186,7 +184,6 @@ const isEditMode = isEdit === 'true'; // Convert string to boolean
         [field]: value,
       };
      
-      console.log('New formData:', newFormData);
       return newFormData;
     });
   };
@@ -201,15 +198,14 @@ const isEditMode = isEdit === 'true'; // Convert string to boolean
   // Form submission handler (Create or Update)
   const handleSubmit = async () => {
     formData.sibilings = siblingsList;
-    console.log('Profile data:', formData);
    
     try {
       const token = await AsyncStorage.getItem('token');
      
       // Determine API endpoint and method based on mode
       const url = isEditMode
-        ? 'http://stu.globalknowledgetech.com:5003/family/update-family-details' // Update endpoint
-        : 'http://stu.globalknowledgetech.com:5003/family/family-details'; // Create endpoint
+        ? '/family/update-family-details' // Update endpoint
+        : '/family/family-details'; // Create endpoint
      
      
       const response = await axiosPublic.post(url,formData, {
@@ -219,7 +215,6 @@ const isEditMode = isEdit === 'true'; // Convert string to boolean
       });
  
       const result =  response;
-      console.log('Response:', result);
      
         // Navigate based on mode
         if (isEditMode) {
@@ -252,7 +247,6 @@ const isEditMode = isEdit === 'true'; // Convert string to boolean
       !newSibling.occupation;
  
     if (!isSiblingEmpty) {
-      console.log(newSibling);
       setSiblingsList(prev => [...prev, newSibling]);
  
       // Clear form after adding
@@ -273,11 +267,9 @@ const isEditMode = isEdit === 'true'; // Convert string to boolean
     );
   };
  
-
  
   const CustomPicker = ({ selectedValue, onValueChange, items }) => {  
  
-    console.log('selected',selectedValue,items);
    
      return (
     <View style={{

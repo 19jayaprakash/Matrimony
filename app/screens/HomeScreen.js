@@ -1236,19 +1236,21 @@
 
 
 
+import { useRouter } from 'expo-router';
 import {
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from 'react-native';
 import Feather from 'react-native-vector-icons/Feather';
 
 const MatrimonyHomeScreen = () => {
+  const router = useRouter()
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar barStyle="dark-content" backgroundColor="white" />
@@ -1259,7 +1261,8 @@ const MatrimonyHomeScreen = () => {
           <TouchableOpacity style={styles.activeTab}>
             <Text style={styles.activeTabText}>Regular</Text>
           </TouchableOpacity>
-          <TouchableOpacity style={styles.inactiveTab}>
+          <TouchableOpacity style={styles.inactiveTab} onPress={() => router.push('/screens/Payment')}
+ >
             <Text style={styles.inactiveTabText}>PRIME ●</Text>
           </TouchableOpacity>
           <TouchableOpacity style={styles.searchIcon}>
@@ -1285,7 +1288,7 @@ const MatrimonyHomeScreen = () => {
               <Text style={styles.appName}>VivaahAI Matrimony</Text>
               <View style={styles.membershipContainer}>
                 <Text style={styles.membershipText}>Free Member</Text>
-                <TouchableOpacity style={styles.upgradeButton}>
+                <TouchableOpacity style={styles.upgradeButton} onPress={() => router.push('/screens/Payment')}>
                   <Text style={styles.upgradeText}>Upgrade</Text>
                 </TouchableOpacity>
               </View>

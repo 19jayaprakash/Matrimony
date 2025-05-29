@@ -870,27 +870,27 @@
 
 import { router } from "expo-router";
 import {
-    Calendar,
-    ChevronDown,
-    ChevronLeft,
-    ChevronRight,
-    Heart,
-    SlidersHorizontal,
+  Calendar,
+  ChevronDown,
+  ChevronLeft,
+  ChevronRight,
+  Heart,
+  SlidersHorizontal,
 } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
 import {
-    Animated,
-    Dimensions,
-    Image,
-    Modal,
-    PanResponder,
-    SafeAreaView,
-    ScrollView,
-    StatusBar,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Animated,
+  Dimensions,
+  Image,
+  Modal,
+  PanResponder,
+  SafeAreaView,
+  ScrollView,
+  StatusBar,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import RNPickerSelect from "react-native-picker-select";
  
@@ -1284,12 +1284,10 @@ const MatchesScreen = () => {
       );
     });
  
-    console.log("filtered", filtered);
  
     setFilteredMatches(filtered);
     setCurrentIndex(0);
     setShowFilter(false);
-    console.log(selectedAge);
   };
   
   const Filterclose = () => {
@@ -1462,7 +1460,6 @@ const MatchesScreen = () => {
   };
   
   const handleViewProfile = (id) => {
-    console.log(`View profile with id: ${id}`);
     // Navigate to profile details screen
   };
  

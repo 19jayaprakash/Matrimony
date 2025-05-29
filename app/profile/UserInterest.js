@@ -1,7 +1,5 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import axios from 'axios';
-import { router,useLocalSearchParams } from 'expo-router'; 
-import { axiosPublic } from '../api/constant';
+import { router, useLocalSearchParams } from 'expo-router';
 import {
   Activity,
   ChevronsRight,
@@ -25,6 +23,7 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
+import { axiosPublic } from '../api/constant';
  
  
  
@@ -334,7 +333,6 @@ const MatrimonialProfile = () => {
   "habits": selectedHabits,
   "dietPreferences": selectedDiets,
 })
-    console.log('Form Data:', json);
     await axiosPublic.post(`/Interests/user-interests`, json,{
       headers : {
         "Authorization" : `Bearer ${token}`,
@@ -363,7 +361,6 @@ const MatrimonialProfile = () => {
   "habits": selectedHabits,
   "dietPreferences": selectedDiets,
 })
-    console.log('Form Data:', json);
     await axiosPublic.post(`/Interests/update-user-interests`, json,{
       headers : {
         'Content-Type': 'application/json',

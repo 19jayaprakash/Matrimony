@@ -18,6 +18,7 @@ import {
   useWindowDimensions,
   View
 } from 'react-native';
+import { axiosPublic } from '../api/constant';
  
 // Form Section Component
 const FormSection = ({ title, icon, children }) => (
@@ -214,15 +215,12 @@ const MatrimonialProfile = () => {
         return;
       }
  
-      // Choose API endpoint based on edit mode
       const apiUrl = isEditMode
-        ? 'http://stu.globalknowledgetech.com:5003/user/update-professional-datas'
-        : 'http://stu.globalknowledgetech.com:5003/user/add-professional-details';
+        ? '/user/update-professional-datas'
+        : '/user/add-professional-details';
  
-      const response = await fetch(apiUrl, {
-        method:'POST',
+      const response = await axiosPublic.post(apiUrl, {
         headers: {
-          'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         },
         body: JSON.stringify(formData),
@@ -257,7 +255,6 @@ const MatrimonialProfile = () => {
             }
           ]
         );*/}
-        console.log('Professional details submitted successfully:', data);
       } else {
         console.error('Submission failed:', data);
         Alert.alert('Error', 'Failed to save professional details');

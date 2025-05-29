@@ -27,7 +27,6 @@ import {
 } from 'react-native';
 import { RadioButton } from 'react-native-paper';
 import { axiosPublic } from '../api/constant';
-import axios from 'axios';
 
 const MatrimonialProfile = () => {
   const { width } = useWindowDimensions();
@@ -297,6 +296,25 @@ useEffect(() => {
       if (result) {
         const userData = result;
         setuserdetails(result);
+
+        // Helper function to find matching option (case-insensitive)
+        const findMatchingOption = (userValue, optionsArray) => {
+          if (!userValue || optionsArray.length === 0) return '';
+          
+          return optionsArray.find(option => 
+            option.toLowerCase() === userValue.toLowerCase()
+          ) || '';
+        };
+
+        // Helper function specifically for body type
+        const findMatchingBodyType = (userBodyType) => {
+          if (!userBodyType || bodytypeoptions.length === 0) return '';
+          
+          return bodytypeoptions.find(option => 
+            option.toLowerCase() === userBodyType.toLowerCase()
+          ) || '';
+        };
+        
         setFormData(prevData => ({
           ...prevData,
           firstName: userData.firstName || '',
@@ -312,10 +330,13 @@ useEffect(() => {
           state: userData.state || '',
           city: userData.city || '',
           gender: userData.gender || '',
-          bodyType: userData.bodyType || '',
-          maritalStatus: userData.maritalStatus || '',
-          children: userData.children || '',
-          wantChildren: userData.wantChildren || '',
+          bodyType: findMatchingBodyType(userData.bodyType),
+          // maritalStatus: userData.maritalStatus || '',
+          // children: userData.children || '',
+          // wantChildren: userData.wantChildren || '',
+            maritalStatus: findMatchingOption(userData.maritalStatus, martialoptions),
+          children: findMatchingOption(userData.children, havechildrenoptions),
+          wantChildren: findMatchingOption(userData.wantChildren, wantchildrenoptions),
           religion: userData.religion || '',
           caste: userData.caste || '',
           subcaste: userData.subCaste || '',
@@ -543,6 +564,8 @@ useEffect(() => {
         ...formData,
         height: formData.height ? parseInt(formData.height, 10) : null,
         weight: formData.weight ? parseInt(formData.weight, 10) : null,
+        dietPreferences: formData.dietPreference,
+           subCaste: (formData.subcaste && formData.subcaste.trim() !== '') ? formData.subcaste : null,
         isBasicProfileSubmitted: true,
       };
   
@@ -1213,6 +1236,10 @@ useEffect(() => {
                         // When caste changes, reset subcaste
                         handleChange('caste', itemValue);
                         handleChange('subcaste', '');
+                                if (!itemValue) {
+          setSubcasteOptions([]); 
+        }
+
                       }}
                       style={{ width: '100%' }}
                     >
@@ -1245,9 +1272,18 @@ useEffect(() => {
                       selectedValue={formData.subcaste}
                       onValueChange={(itemValue) => handleChange('subcaste', itemValue)}
                       style={{ width: '100%' }}
-                      enabled={!!formData.caste} // Disable subcaste picker if no caste is selected
+                           enabled={!!formData.caste && subcasteOptions.length > 0}  // Disable subcaste picker if no caste is selected
                     >
-                      <Picker.Item label={formData.caste ? "Select Subcaste" : "Select Caste First"} value="" />
+                    <Picker.Item 
+        label={
+          !formData.caste 
+            ? "Select Caste First" 
+            : subcasteOptions.length === 0 
+              ? "Loading..." 
+              : "Select Subcaste"
+        } 
+        value="" 
+      />
                       {subcasteOptions && subcasteOptions.length > 0 ?
                         subcasteOptions.map((subcaste, index) =>
                           subcaste ? <Picker.Item key={index} label={subcaste.toString()} value={subcaste.toString()} /> : null

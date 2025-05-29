@@ -1,4 +1,3 @@
-import axios from "axios";
 import { useRouter } from "expo-router";
 import { ChevronDown, Eye, EyeOff, Lock, Mail, Phone, User, X } from "lucide-react-native";
 import { useEffect, useRef, useState } from "react";
@@ -420,14 +419,12 @@ const handleSubmit = async () => {
     );
 
     if (res.status === 201) {
-      console.log("Registration successful:", res.data);
       router.push("/");
     }
   } catch (err) {
     console.error("Registration error:", err);
   } finally {
     setIsSubmitting(false);
-    console.log("Form Data Submitted:", finalFormData);
   }
 };
 

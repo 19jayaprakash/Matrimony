@@ -18,7 +18,6 @@ import {
 
 import { Ionicons } from "@expo/vector-icons";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import axios from "axios";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect } from "react";
 import { axiosPublic } from "../api/constant";
@@ -42,13 +41,13 @@ const ftToCm = (ftString) => {
 };
 
 const cmToFt = (cm) => {
-  if (!cm || isNaN(cm)) return ''; // return empty string if invalid
+  if (!cm || isNaN(cm)) return ""; // return empty string if invalid
 
   const totalInches = cm / 2.54;
   const feet = Math.floor(totalInches / 12);
   const inches = Math.round(totalInches % 12);
 
-  if (isNaN(feet) || isNaN(inches)) return ''; // extra guard
+  if (isNaN(feet) || isNaN(inches)) return ""; // extra guard
 
   if (inches === 12) {
     return `${feet + 1}'0"`;
@@ -56,7 +55,6 @@ const cmToFt = (cm) => {
 
   return `${feet}'${inches}"`;
 };
-
 
 const MatrimonialProfile = () => {
   const [apiData, setApiData] = useState({
@@ -126,7 +124,7 @@ const MatrimonialProfile = () => {
       try {
         const authToken = await AsyncStorage.getItem("token");
         const response = await axiosPublic.get(
-          "http://stu.globalknowledgetech.com:5003/partnerpreference/get-utility-partner-preference-data",
+          "/partnerpreference/get-utility-partner-preference-data",
           {
             headers: {
               Authorization: `Bearer ${authToken}`,
@@ -134,7 +132,6 @@ const MatrimonialProfile = () => {
           }
         );
 
-        console.log("Fetched data:", response.data);
 
         if (response.data && response.data.data) {
           const fetchedData = response.data.data;
@@ -778,7 +775,6 @@ const MatrimonialProfile = () => {
             : null;
 
           if (editData) {
-            console.log("Loaded edit data:", editData);
 
             // Ensure caste and height are updated only when their base data exists
             const casteOptions =
@@ -911,35 +907,30 @@ const MatrimonialProfile = () => {
         }
 
         const apiUrl = isEditMode
-          ? "http://stu.globalknowledgetech.com:5003/partnerpreference/update-preference"
-          : "http://stu.globalknowledgetech.com:5003/partnerpreference/create-preference";
+          ? "/partnerpreference/update-preference"
+          : "/partnerpreference/create-preference";
 
         const response = isEditMode
-          ? await axios.put(apiUrl, payloadData, {
+          ? await axiosPublic.put(apiUrl, payloadData, {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
             })
-          : await axios.post(apiUrl, payloadData, {
+          : await axiosPublic.post(apiUrl, payloadData, {
               headers: {
                 Authorization: `Bearer ${token}`,
               },
             });
 
-            if(response.status == 200){
-        router.push("/navigation/MainTabs");
-                console.log("Preference save success:");
-
-
-            }
+        if (response.status == 200) {
+          router.push("/navigation/MainTabs");
+        }
 
         Alert.alert("Success", "Partner preferences saved successfully!");
       } catch (err) {
-        console.log("Preference save failed:", err);
         Alert.alert("Error", "Failed to save preferences.");
       }
 
-      console.log("Saving preferences:", payloadData);
     } else {
       const errorMessages = [];
       Object.keys(errors).forEach((key) => {
@@ -976,7 +967,6 @@ const MatrimonialProfile = () => {
     if (!value) return placeholder;
     return value;
   };
-
 
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: "#f8fafc" }}>

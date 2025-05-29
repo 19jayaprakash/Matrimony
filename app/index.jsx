@@ -27,7 +27,6 @@ const LoginScreen = ({ navigation }) => {
   const [emailError, setEmailError] = useState('');
   const [passwordError, setPasswordError] = useState('');
 
-  // const adUnitId = __DEV__ ? TestIds.BANNER : 'ca-app-pub-2761403122222548~9226987823';
 
   const handleLogin = async () => {
     setEmailError('');
@@ -66,6 +65,7 @@ const LoginScreen = ({ navigation }) => {
         await AsyncStorage.setItem('firstName', response.data.firstName);
         await AsyncStorage.setItem('lastName', response.data.lastName);
         await AsyncStorage.setItem('primaryContact', response.data.primaryContact);
+        await AsyncStorage.setItem('userId',response.data.userId);
         if (response.data.isBasicProfileSubmitted == true) {
         
           router.push('../navigation/MainTabs');
@@ -92,29 +92,6 @@ const LoginScreen = ({ navigation }) => {
   return (
     <SafeAreaView style={{ flex: 1, backgroundColor: '#FDF2F8' }}>
       <StatusBar barStyle="dark-content" />
-      
-      {!isWeb && (
-        <View style={{ 
-          alignItems: 'center', 
-          backgroundColor: '#FDF2F8',
-          paddingVertical: 8
-        }}>
-          {/* <BannerAd
-            unitId={adUnitId}
-            size={BannerAdSize.BANNER}
-            requestOptions={{
-              requestNonPersonalizedAdsOnly: true,
-            }}
-            onAdLoaded={() => {
-              console.log('Banner ad loaded');
-            }}
-            onAdFailedToLoad={(error) => {
-              console.error('Banner ad failed to load:', error);
-            }}
-          /> */}
-        </View>
-      )}
-
       <KeyboardAvoidingView
         behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         style={{ flex: 1 }}
@@ -257,30 +234,6 @@ const LoginScreen = ({ navigation }) => {
           </View>
         </View>
       </KeyboardAvoidingView>
-
-      {/* {!isWeb && (
-        <View style={{ 
-          alignItems: 'center', 
-          backgroundColor: '#FDF2F8',
-          paddingVertical: 8,
-          borderTopWidth: 1,
-          borderTopColor: '#E5E7EB'
-        }}>
-          <BannerAd
-            unitId={adUnitId}
-            size={BannerAdSize.BANNER}
-            requestOptions={{
-              requestNonPersonalizedAdsOnly: true,
-            }}
-            onAdLoaded={() => {
-              console.log('Bottom banner ad loaded');
-            }}
-            onAdFailedToLoad={(error) => {
-              console.error('Bottom banner ad failed to load:', error);
-            }}
-          />
-        </View>
-      )} */}
     </SafeAreaView>
   );
 };

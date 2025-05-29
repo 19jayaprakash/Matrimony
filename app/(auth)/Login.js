@@ -31,7 +31,6 @@ const Login = () => {
   // Handle login
   const handleLogin = () => {
     // Implement authentication logic here
-    console.log('Login with:', { email, password });
     // Navigate to Home or Dashboard after successful login
     router.push('Home');
   };
